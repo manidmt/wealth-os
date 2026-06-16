@@ -1,0 +1,391 @@
+{
+  "owner": "Demo User",
+  "generatedAt": "2026-05-01T08:00:00.000Z",
+  "currentCalendarMonth": "2026-04",
+  "latestClosedMonth": "2026-04",
+  "latestMonth": "2026-04",
+  "summary": {
+    "totalAssets": 155000,
+    "totalLiabilities": 5000,
+    "netWorth": 150000,
+    "monthlyChange": 1850,
+    "latestSavings": 1200
+  },
+  "allocation": [
+    {
+      "label": "Fondos inversión",
+      "value": 60000
+    },
+    {
+      "label": "Cuentas",
+      "value": 35000
+    },
+    {
+      "label": "Acciones",
+      "value": 28000
+    },
+    {
+      "label": "Oro",
+      "value": 15000
+    },
+    {
+      "label": "Crypto",
+      "value": 12000
+    },
+    {
+      "label": "Efectivo broker",
+      "value": 5000
+    }
+  ],
+  "platforms": [
+    {
+      "label": "Main Bank",
+      "value": 35000
+    },
+    {
+      "label": "Index Funds",
+      "value": 60000
+    },
+    {
+      "label": "Demo Broker",
+      "value": 28000
+    },
+    {
+      "label": "Crypto Exchange",
+      "value": 12000
+    },
+    {
+      "label": "Bullion Store",
+      "value": 15000
+    },
+    {
+      "label": "Online Bank",
+      "value": 5000
+    }
+  ],
+  "holdings": [
+    {
+      "label": "Cuenta corriente",
+      "category": "Cuentas",
+      "platform": "Main Bank",
+      "value": 20000
+    },
+    {
+      "label": "Cuenta ahorro",
+      "category": "Cuentas",
+      "platform": "Main Bank",
+      "value": 15000
+    },
+    {
+      "label": "Fondo World Index",
+      "category": "Fondos inversión",
+      "platform": "Index Funds",
+      "value": 40000
+    },
+    {
+      "label": "Fondo Emergentes",
+      "category": "Fondos inversión",
+      "platform": "Index Funds",
+      "value": 20000
+    },
+    {
+      "label": "Cartera acciones EU",
+      "category": "Acciones",
+      "platform": "Demo Broker",
+      "value": 18000
+    },
+    {
+      "label": "Cartera acciones US",
+      "category": "Acciones",
+      "platform": "Demo Broker",
+      "value": 10000
+    },
+    {
+      "label": "Bitcoin",
+      "category": "Crypto",
+      "platform": "Crypto Exchange",
+      "value": 8000
+    },
+    {
+      "label": "Ethereum",
+      "category": "Crypto",
+      "platform": "Crypto Exchange",
+      "value": 4000
+    },
+    {
+      "label": "Lingotes oro",
+      "category": "Oro",
+      "platform": "Bullion Store",
+      "value": 15000
+    },
+    {
+      "label": "Cuenta online",
+      "category": "Cuentas",
+      "platform": "Online Bank",
+      "value": 5000
+    }
+  ],
+  "portfolio": {
+    "holdings": [
+      {
+        "label": "Fondo World Index",
+        "category": "Fondos inversión",
+        "platform": "Index Funds",
+        "value": 40000
+      },
+      {
+        "label": "Fondo Emergentes",
+        "category": "Fondos inversión",
+        "platform": "Index Funds",
+        "value": 20000
+      },
+      {
+        "label": "Cartera acciones EU",
+        "category": "Acciones",
+        "platform": "Demo Broker",
+        "value": 18000
+      },
+      {
+        "label": "Cartera acciones US",
+        "category": "Acciones",
+        "platform": "Demo Broker",
+        "value": 10000
+      },
+      {
+        "label": "Bitcoin",
+        "category": "Crypto",
+        "platform": "Crypto Exchange",
+        "value": 8000
+      },
+      {
+        "label": "Ethereum",
+        "category": "Crypto",
+        "platform": "Crypto Exchange",
+        "value": 4000
+      },
+      {
+        "label": "Lingotes oro",
+        "category": "Oro",
+        "platform": "Bullion Store",
+        "value": 15000
+      }
+    ],
+    "byPlatform": [
+      {
+        "label": "Index Funds",
+        "value": 60000
+      },
+      {
+        "label": "Demo Broker",
+        "value": 28000
+      },
+      {
+        "label": "Bullion Store",
+        "value": 15000
+      },
+      {
+        "label": "Crypto Exchange",
+        "value": 12000
+      }
+    ]
+  },
+  "expenses": {
+    "currentMonth": "2026-04",
+    "currentMonthTotal": 1450,
+    "currentMonthIncome": 2650,
+    "currentMonthCategories": [
+      {
+        "label": "Vivienda",
+        "value": 650
+      },
+      {
+        "label": "Alimentación",
+        "value": 320
+      },
+      {
+        "label": "Transporte",
+        "value": 150
+      },
+      {
+        "label": "Ocio",
+        "value": 180
+      },
+      {
+        "label": "Otros",
+        "value": 150
+      }
+    ],
+    "byMonth": [
+      {
+        "month": "2025-05",
+        "expenseTotal": 1320,
+        "incomeTotal": 2500,
+        "net": 1180,
+        "value": 1320
+      },
+      {
+        "month": "2025-06",
+        "expenseTotal": 1480,
+        "incomeTotal": 2500,
+        "net": 1020,
+        "value": 1480
+      },
+      {
+        "month": "2025-07",
+        "expenseTotal": 1550,
+        "incomeTotal": 2500,
+        "net": 950,
+        "value": 1550
+      },
+      {
+        "month": "2025-08",
+        "expenseTotal": 1200,
+        "incomeTotal": 2500,
+        "net": 1300,
+        "value": 1200
+      },
+      {
+        "month": "2025-09",
+        "expenseTotal": 1390,
+        "incomeTotal": 2600,
+        "net": 1210,
+        "value": 1390
+      },
+      {
+        "month": "2025-10",
+        "expenseTotal": 1420,
+        "incomeTotal": 2600,
+        "net": 1180,
+        "value": 1420
+      },
+      {
+        "month": "2025-11",
+        "expenseTotal": 1680,
+        "incomeTotal": 2600,
+        "net": 920,
+        "value": 1680
+      },
+      {
+        "month": "2025-12",
+        "expenseTotal": 1900,
+        "incomeTotal": 2600,
+        "net": 700,
+        "value": 1900
+      },
+      {
+        "month": "2026-01",
+        "expenseTotal": 1350,
+        "incomeTotal": 2650,
+        "net": 1300,
+        "value": 1350
+      },
+      {
+        "month": "2026-02",
+        "expenseTotal": 1280,
+        "incomeTotal": 2650,
+        "net": 1370,
+        "value": 1280
+      },
+      {
+        "month": "2026-03",
+        "expenseTotal": 1500,
+        "incomeTotal": 2650,
+        "net": 1150,
+        "value": 1500
+      },
+      {
+        "month": "2026-04",
+        "expenseTotal": 1450,
+        "incomeTotal": 2650,
+        "net": 1200,
+        "value": 1450
+      }
+    ]
+  },
+  "series": [
+    {
+      "month": "2025-05",
+      "assets": 135000,
+      "liabilities": 5000,
+      "netWorth": 130000,
+      "savings": 1180
+    },
+    {
+      "month": "2025-06",
+      "assets": 136500,
+      "liabilities": 5000,
+      "netWorth": 131500,
+      "savings": 1020
+    },
+    {
+      "month": "2025-07",
+      "assets": 137800,
+      "liabilities": 5000,
+      "netWorth": 132800,
+      "savings": 950
+    },
+    {
+      "month": "2025-08",
+      "assets": 139400,
+      "liabilities": 5000,
+      "netWorth": 134400,
+      "savings": 1300
+    },
+    {
+      "month": "2025-09",
+      "assets": 140800,
+      "liabilities": 5000,
+      "netWorth": 135800,
+      "savings": 1210
+    },
+    {
+      "month": "2025-10",
+      "assets": 142200,
+      "liabilities": 5000,
+      "netWorth": 137200,
+      "savings": 1180
+    },
+    {
+      "month": "2025-11",
+      "assets": 143300,
+      "liabilities": 5000,
+      "netWorth": 138300,
+      "savings": 920
+    },
+    {
+      "month": "2025-12",
+      "assets": 144200,
+      "liabilities": 5000,
+      "netWorth": 139200,
+      "savings": 700
+    },
+    {
+      "month": "2026-01",
+      "assets": 145700,
+      "liabilities": 5000,
+      "netWorth": 140700,
+      "savings": 1300
+    },
+    {
+      "month": "2026-02",
+      "assets": 147300,
+      "liabilities": 5000,
+      "netWorth": 142300,
+      "savings": 1370
+    },
+    {
+      "month": "2026-03",
+      "assets": 148600,
+      "liabilities": 5000,
+      "netWorth": 143600,
+      "savings": 1150
+    },
+    {
+      "month": "2026-04",
+      "assets": 155000,
+      "liabilities": 5000,
+      "netWorth": 150000,
+      "savings": 1200
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+# This file is used internally by FFMPEG.
+file 'file:/home/manidmt/.openclaw/workspace/projects/wealth-os/wealth-navigator/media/videos/logo_anim/480p15/partial_movie_files/WealthOSLogo/1333333417_2159106230_2358810818.mp4'
+file 'file:/home/manidmt/.openclaw/workspace/projects/wealth-os/wealth-navigator/media/videos/logo_anim/480p15/partial_movie_files/WealthOSLogo/2343325835_3394500337_2019788650.mp4'
