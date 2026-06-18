@@ -18,6 +18,7 @@ export function openAgentStream(
   message: string,
   history: AgentMessage[],
   handlers: AgentHandlers,
+  context?: string,
 ): () => void {
   let settled = false;
   const ws = new WebSocket(`${WS_BASE_URL}/ws/${userId}`);
@@ -31,7 +32,9 @@ export function openAgentStream(
   }, 5000);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ message, history }));
+    const payload: Record<string, unknown> = { message, history };
+    if (context !== undefined) payload.context = context;
+    ws.send(JSON.stringify(payload));
   };
 
   ws.onmessage = (ev) => {
