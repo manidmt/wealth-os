@@ -40,9 +40,22 @@ def build_system_prompt(df_movements_recent):
             """
 
 
-async def run_agent_stream(user_id, message, history):
+async def run_agent_stream(user_id, message, history, context=None):
     _, df_movements_recent, df_portfolio = load_user_data(user_id)
     system_prompt = build_system_prompt(df_movements_recent)
+
+    system_messages = [{"role": "system", "content": system_prompt}]
+    if context:
+        system_messages.append({
+            "role": "system",
+            "content": (
+                "ESTADO DE PLANIFICACIÓN DE INVERSIÓN DEL USUARIO (fuente fiable, "
+                "ya calculada por la app). Úsalo junto con tus tools. Sobre este "
+                "estado SÍ puedes razonar de forma accionable (qué aportar este mes, "
+                "qué señal se ha disparado, desviaciones), pero no inventes cifras "
+                "que no estén aquí ni en tus datos:\n\n" + context
+            ),
+        })
 
     messages = [{"role": m.role, "content": m.content} for m in history]
     messages.append({"role": "user", "content": message})
@@ -50,19 +63,19 @@ async def run_agent_stream(user_id, message, history):
     for _ in range(5):
         response = await client.chat.completions.create(
             model=MODEL,
-            messages=[{"role": "system", "content": system_prompt}] + messages,
+            messages=system_messages + messages,
             tools=TOOLS_SCHEMA,
             tool_choice="auto",
             temperature=0.1,
             max_completion_tokens=1024,
         )
-    
-        msg = response.choices[0].message   
+
+        msg = response.choices[0].message
 
         if not msg.tool_calls:
             stream = await client.chat.completions.create(
                 model=MODEL,
-                messages=[{"role": "system", "content": system_prompt}] + messages,
+                messages=system_messages + messages,
                 temperature=0.1,
                 max_completion_tokens=1024,
                 stream=True,
