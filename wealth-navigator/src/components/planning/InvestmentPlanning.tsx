@@ -72,11 +72,16 @@ const planSchema = z.object({
 
 type PlanForm = z.infer<typeof planSchema>;
 
+const optionalPositive = z.preprocess(
+  (v) => (v === "" || v == null ? undefined : v),
+  z.coerce.number().positive().optional(),
+) as z.ZodType<number | undefined>;
+
 const contributionSchema = z.object({
   date: z.string().min(1, "Requerido"),
   actual_amount: z.coerce.number().min(0),
-  price: z.coerce.number().positive().optional(),
-  multiplier: z.coerce.number().positive().optional(),
+  price: optionalPositive,
+  multiplier: optionalPositive,
 });
 
 type ContributionForm = z.infer<typeof contributionSchema>;
