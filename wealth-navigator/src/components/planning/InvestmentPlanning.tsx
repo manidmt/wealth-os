@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, CalendarCheck } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,14 +27,12 @@ import {
   useCreatePlan,
   useUpdatePlan,
   useDeletePlan,
-  usePlanContributions,
   useUpsertContribution,
   type InvestmentPlan,
   type RuleType,
   type Frequency,
 } from "@/lib/planning-api";
 import {
-  computePlannedAmount,
   computeProjection,
   formatRule,
   toEnginePlan,
@@ -42,7 +40,7 @@ import {
 } from "@/lib/planning-calc";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { formatMonth, euro } from "@/lib/dashboard-data";
-import { StrategyCard } from "@/components/planning/StrategyCard";
+import { PlanRow } from "@/components/planning/PlanRow";
 import { JanuaryWizard } from "@/components/planning/JanuaryWizard";
 import { MonthlyRoutine } from "@/components/planning/MonthlyRoutine";
 import { ContributionLog } from "@/components/planning/ContributionLog";
@@ -112,6 +110,8 @@ export function InvestmentPlanning() {
     [dashboard.expenses.byMonth],
   );
 
+  const month = new Date().toISOString().slice(0, 7);
+
   const activePlans = plans.filter((p) => p.active);
   const strategyPlans = plans.filter((p) => p.asset_class);
   const projectionPlan = plans.find((p) => p.id === selectedPlanId) ?? activePlans[0] ?? null;
@@ -160,28 +160,19 @@ export function InvestmentPlanning() {
                 : undefined
           }
         >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {strategyPlans.map((plan) => (
-              <StrategyCard
+          <div>
+            {activePlans.map((plan) => (
+              <PlanRow
                 key={plan.id}
                 plan={plan}
                 signals={signals}
                 positions={positions}
+                monthlyFinancials={monthlyFinancials}
+                month={month}
                 onEdit={() => openEdit(plan)}
-                onRegister={() => setContributionPlan(plan)}
+                onContribute={() => setContributionPlan(plan)}
               />
             ))}
-            {activePlans
-              .filter((p) => !p.asset_class)
-              .map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  monthlyFinancials={monthlyFinancials}
-                  onEdit={() => openEdit(plan)}
-                  onContribute={() => setContributionPlan(plan)}
-                />
-              ))}
           </div>
         </SectionCard>
 
@@ -303,93 +294,6 @@ export function InvestmentPlanning() {
         />
       )}
     </>
-  );
-}
-
-// ── PlanCard ───────────────────────────────────────────────────────────────
-
-function PlanCard({
-  plan,
-  monthlyFinancials,
-  onEdit,
-  onContribute,
-}: {
-  plan: InvestmentPlan;
-  monthlyFinancials: MonthlyFinancials[];
-  onEdit: () => void;
-  onContribute: () => void;
-}) {
-  const { data: contributions = [] } = usePlanContributions(plan.id);
-
-  const currentMonth = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  })();
-
-  const currentContrib = contributions.find((c) => c.date.slice(0, 7) === currentMonth);
-
-  const planned = computePlannedAmount(plan, monthlyFinancials, currentMonth);
-  const actual = currentContrib?.actual_amount ?? null;
-  const deviation = actual !== null ? actual - planned : null;
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="truncate text-[13.5px] font-semibold tracking-tight">{plan.name}</div>
-          <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-            {plan.asset_name}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      <div className="mt-3 rounded-md bg-muted/40 px-3 py-2 text-[12px]">
-        <div className="text-muted-foreground">Regla</div>
-        <div className="font-medium text-foreground">{formatRule(plan)}</div>
-      </div>
-
-      <div className="mt-3 space-y-1 text-[12px]">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Planificado este mes</span>
-          <span className="font-medium">
-            {plan.rule_type === "event" ? "—" : euro.format(planned)}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Aportado</span>
-          <span className={`font-medium ${actual === null ? "text-muted-foreground" : ""}`}>
-            {actual !== null ? euro.format(actual) : "Sin registrar"}
-          </span>
-        </div>
-        {deviation !== null && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Desviación</span>
-            <span
-              className={`font-medium ${deviation >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}`}
-            >
-              {deviation >= 0 ? "+" : ""}
-              {euro.format(deviation)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      <button
-        type="button"
-        onClick={onContribute}
-        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-[12px] font-medium text-foreground/80 transition hover:border-border-strong hover:text-foreground"
-      >
-        <CalendarCheck className="h-3.5 w-3.5" />
-        Registrar aportación
-      </button>
-    </div>
   );
 }
 
