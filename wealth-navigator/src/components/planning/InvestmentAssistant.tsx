@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sparkles, RotateCw, MessageSquare } from "lucide-react";
 import { SectionCard } from "@/components/app/SectionCard";
 import { Markdownish, ThinkingDots, Composer } from "@/components/assistant/chat-bits";
@@ -35,6 +35,19 @@ export function InvestmentAssistant({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const chatCloseRef = useRef<(() => void) | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      closeRef.current?.();
+      chatCloseRef.current?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
 
   function generate() {
     if (!user?.id) return;
@@ -42,6 +55,7 @@ export function InvestmentAssistant({
     setDraft("");
     setStreaming(true);
     let acc = "";
+    closeRef.current?.();
     closeRef.current = openAgentStream(
       user.id,
       buildBriefingPrompt(serialized, month),
@@ -76,9 +90,12 @@ export function InvestmentAssistant({
     ]);
     setInput("");
     setBusy(true);
-    const history = messages.map((m) => ({ role: m.role, content: m.content }));
+    const history = [
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: trimmed },
+    ];
     let acc = "";
-    openAgentStream(
+    chatCloseRef.current = openAgentStream(
       user.id,
       trimmed,
       history,
@@ -159,7 +176,7 @@ export function InvestmentAssistant({
           </button>
           {chatOpen && (
             <div className="mt-3 rounded-lg border border-border">
-              <div className="max-h-72 space-y-4 overflow-y-auto px-4 py-3">
+              <div ref={scrollRef} className="max-h-72 space-y-4 overflow-y-auto px-4 py-3">
                 {messages.length === 0 ? (
                   <p className="text-[12.5px] text-muted-foreground">
                     Pregunta sobre tus planes, señales o cuánto aportar.
