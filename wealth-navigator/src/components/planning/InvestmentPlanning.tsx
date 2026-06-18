@@ -28,12 +28,14 @@ import {
   useUpdatePlan,
   useDeletePlan,
   useUpsertContribution,
+  usePlanContributions,
   type InvestmentPlan,
   type RuleType,
   type Frequency,
 } from "@/lib/planning-api";
 import {
   computeProjection,
+  computePlannedAmount,
   formatRule,
   toEnginePlan,
   type MonthlyFinancials,
