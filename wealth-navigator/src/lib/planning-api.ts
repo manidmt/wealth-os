@@ -132,6 +132,23 @@ export function usePlanContributions(planId: string | null) {
   });
 }
 
+export function useAllPlanContributions() {
+  const { user } = useAuth();
+  return useQuery<PlanContribution[]>({
+    queryKey: ["plan_contributions", "all"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("plan_contributions")
+        .select("*")
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+}
+
 export function useUpsertContribution() {
   const { user } = useAuth();
   const qc = useQueryClient();

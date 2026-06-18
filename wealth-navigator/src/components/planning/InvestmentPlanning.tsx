@@ -29,10 +29,14 @@ import {
   useDeletePlan,
   useUpsertContribution,
   usePlanContributions,
+  useAllPlanContributions,
+  useRoutineLog,
   type InvestmentPlan,
   type RuleType,
   type Frequency,
 } from "@/lib/planning-api";
+import { InvestmentAssistant } from "@/components/planning/InvestmentAssistant";
+import { buildPlanningContext } from "@/lib/planning-context";
 import {
   computeProjection,
   computePlannedAmount,
@@ -114,9 +118,39 @@ export function InvestmentPlanning() {
 
   const month = new Date().toISOString().slice(0, 7);
 
+  const { data: allContributions = [] } = useAllPlanContributions();
+  const { data: routineLog } = useRoutineLog(month);
+
   const activePlans = plans.filter((p) => p.active);
   const strategyPlans = plans.filter((p) => p.asset_class);
   const projectionPlan = plans.find((p) => p.id === selectedPlanId) ?? activePlans[0] ?? null;
+
+  const currentMonthFin = monthlyFinancials.find((m) => m.month === month);
+  const savingsAvailableEur = currentMonthFin
+    ? currentMonthFin.income - currentMonthFin.expense
+    : null;
+  const portfolioTotalEur =
+    positions.reduce((s, p) => s + Number(p.quantity) * Number(p.currentPrice), 0) || null;
+
+  const routine = strategyPlans
+    .filter((p) => p.active)
+    .map((p) => {
+      const label = `Aportar ${effectiveQuota(toEnginePlan(p), signals).toFixed(0)} € a ${p.name}`;
+      const saved = (routineLog?.items ?? []).find((i) => i.key === `buy-${p.id}`);
+      return { label, done: saved?.done ?? false };
+    });
+
+  const planningContext = buildPlanningContext({
+    month,
+    plans: activePlans,
+    signals,
+    positions,
+    contributions: allContributions,
+    monthlyFinancials,
+    routine,
+    savingsAvailableEur,
+    portfolioTotalEur,
+  });
 
   const projectionData = useMemo(() => {
     if (!projectionPlan) return [];
@@ -137,6 +171,8 @@ export function InvestmentPlanning() {
   return (
     <>
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 md:px-8">
+        <InvestmentAssistant context={planningContext} hasPlans={activePlans.length > 0} />
+
         <div className="flex justify-end">
           <button
             type="button"
