@@ -49,8 +49,10 @@ export function PlanRow({
       ? "bg-amber-500"
       : "bg-emerald-500";
   const isStrategy = !!plan.asset_class;
-  const canFire = e.trigger.fired && (e.dryPowder?.currentEur ?? 0) > 0;
   const triggerMulti = plan.multiplier_rules?.trigger?.multi;
+  // Label and action share this single condition so the red "Soltar" button can
+  // never render while the click falls through to onContribute.
+  const canFire = e.trigger.fired && (e.dryPowder?.currentEur ?? 0) > 0 && triggerMulti != null;
 
   return (
     <div className="border-b border-border last:border-0">
@@ -110,15 +112,15 @@ export function PlanRow({
             <span>Activo</span>
             <span className="text-foreground">{plan.asset_name}</span>
           </div>
-          {e.positionValueEur != null && (
+          {e.positionValueEur != null && e.pnlPct != null && (
             <div className="flex justify-between">
               <span>Posición · P&L</span>
               <span className="text-foreground">
                 {euro.format(e.positionValueEur)}
                 {" · "}
-                <span className={e.pnlPct! >= 0 ? "text-emerald-600" : "text-red-500"}>
-                  {e.pnlPct! >= 0 ? "+" : ""}
-                  {e.pnlPct!.toFixed(1)}%
+                <span className={e.pnlPct >= 0 ? "text-emerald-600" : "text-red-500"}>
+                  {e.pnlPct >= 0 ? "+" : ""}
+                  {e.pnlPct.toFixed(1)}%
                 </span>
               </span>
             </div>
