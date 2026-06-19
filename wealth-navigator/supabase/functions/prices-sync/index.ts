@@ -45,11 +45,13 @@ serve(async (req) => {
   const skipped: { name: string; reason: string }[] = [];
   const fxCache = new Map<string, number>();
 
-  async function fxToEur(cur: string): Promise<number> {
-    if (cur === "EUR") return 1;
-    if (fxCache.has(cur)) return fxCache.get(cur)!;
-    const { price } = await yahooQuote(`${cur}EUR=X`);
-    fxCache.set(cur, price);
+  /** Cambio: 1 unidad de `from` en `to` (Yahoo {from}{to}=X), cacheado. */
+  async function fx(from: string, to: string): Promise<number> {
+    if (from === to) return 1;
+    const key = `${from}${to}`;
+    if (fxCache.has(key)) return fxCache.get(key)!;
+    const { price } = await yahooQuote(`${from}${to}=X`);
+    fxCache.set(key, price);
     return price;
   }
 
@@ -77,14 +79,19 @@ serve(async (req) => {
     try {
       const symbol = ticker || (await resolveIsin(isin));
       const { price, currency } = await yahooQuote(symbol);
-      const rate = await fxToEur((currency ?? "EUR").toUpperCase());
-      const eurPrice = price * rate;
+      // Se guarda el precio en la DIVISA de la posición: si Yahoo cotiza en otra
+      // divisa, se convierte (p.ej. acción USD en una posición EUR → EUR); si
+      // coincide, se deja tal cual (una posición en USD se queda en USD).
+      const posCur = (p.currency ?? "EUR").toUpperCase();
+      const yhCur = (currency ?? "EUR").toUpperCase();
+      const rate = await fx(yhCur, posCur);
+      const finalPrice = price * rate;
       const { error: uErr } = await db
         .from("portfolio_positions")
-        .update({ current_price: eurPrice, price_updated_at: new Date().toISOString() })
+        .update({ current_price: finalPrice, price_updated_at: new Date().toISOString() })
         .eq("id", p.id);
       if (uErr) throw new Error(uErr.message);
-      updated.push({ name: p.asset_name, price: eurPrice });
+      updated.push({ name: p.asset_name, price: finalPrice });
     } catch (e) {
       skipped.push({ name: p.asset_name, reason: e instanceof Error ? e.message : "error" });
     }
