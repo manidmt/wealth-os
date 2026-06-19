@@ -158,7 +158,7 @@ export function AddMovementSheet({ open, onOpenChange, movement, defaultMonth }:
         onOpenChange(o);
       }}
     >
-      <SheetContent className="w-full sm:max-w-md">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader className="gap-1">
           <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             {isEdit ? "Editar movimiento" : "Nuevo movimiento"}
