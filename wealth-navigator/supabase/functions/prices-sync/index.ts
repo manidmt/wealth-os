@@ -55,15 +55,16 @@ serve(async (req) => {
 
   const { data: positions, error } = await db
     .from("portfolio_positions")
-    .select("id, asset_name, ticker, isin, currency, asset_type, updated_at")
+    .select("id, asset_name, ticker, isin, currency, asset_type, price_updated_at")
     .in("asset_type", QUOTED);
   if (error) return corsResponse({ error: error.message }, 400);
 
-  // Solo los que no se actualizaron hoy. Resolución de símbolo: ticker si lo hay,
-  // si no el ISIN (resuelto vía búsqueda de Yahoo). Sin ninguno → omitido.
+  // Solo aquellas cuyo PRECIO no se ha refrescado hoy (price_updated_at null o
+  // anterior a hoy). Resolución de símbolo: ticker si lo hay, si no el ISIN
+  // (resuelto vía búsqueda de Yahoo). Sin ninguno → omitido.
   const stale = (positions ?? []).filter(
-    (p: { updated_at: string }) =>
-      new Date(p.updated_at).toISOString().slice(0, 10) < today,
+    (p: { price_updated_at: string | null }) =>
+      !p.price_updated_at || new Date(p.price_updated_at).toISOString().slice(0, 10) < today,
   );
 
   for (const p of stale) {
@@ -80,7 +81,7 @@ serve(async (req) => {
       const eurPrice = price * rate;
       const { error: uErr } = await db
         .from("portfolio_positions")
-        .update({ current_price: eurPrice })
+        .update({ current_price: eurPrice, price_updated_at: new Date().toISOString() })
         .eq("id", p.id);
       if (uErr) throw new Error(uErr.message);
       updated.push({ name: p.asset_name, price: eurPrice });
