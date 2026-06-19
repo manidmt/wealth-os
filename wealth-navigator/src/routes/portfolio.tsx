@@ -21,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
+import { toast } from "sonner";
+import { useSyncPrices } from "@/lib/prices-api";
 
 export const Route = createFileRoute("/portfolio")({
   head: () => ({
@@ -42,6 +44,26 @@ function PortfolioPage() {
   const money = useMoney();
   const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState<PortfolioPosition | null>(null);
+
+  const syncPrices = useSyncPrices();
+
+  function handleSyncPrices() {
+    syncPrices.mutate(undefined, {
+      onSuccess: (res) => {
+        const parts = [`${res.updated.length} actualizada${res.updated.length === 1 ? "" : "s"}`];
+        if (res.skipped.length > 0)
+          parts.push(`${res.skipped.length} omitida${res.skipped.length === 1 ? "" : "s"}`);
+        toast.success(parts.join(" · "));
+        if (res.skipped.length > 0) {
+          toast.message("Omitidas", {
+            description: res.skipped.map((s) => `${s.name}: ${s.reason}`).join("\n"),
+          });
+        }
+      },
+      onError: (e) =>
+        toast.error(`No se pudieron actualizar: ${e instanceof Error ? e.message : "error"}`),
+    });
+  }
 
   // El drawer/detalle debe reflejar el dato vivo de la lista (que revalida tras
   // editar), no el snapshot capturado al hacer clic. Si la posición ya no existe
@@ -114,14 +136,25 @@ function PortfolioPage() {
         title="Portfolio"
         description="Exposición consolidada por activo, plataforma y categoría. Valoración en EUR sobre el último precio disponible."
         actions={
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-[13px] font-medium text-foreground/80 transition hover:border-border-strong hover:text-foreground"
-          >
-            <span className="text-[16px] leading-none">+</span>
-            Añadir posición
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSyncPrices}
+              disabled={syncPrices.isPending}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-[13px] font-medium text-foreground/80 transition hover:border-border-strong hover:text-foreground disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${syncPrices.isPending ? "animate-spin" : ""}`} />
+              {syncPrices.isPending ? "Actualizando…" : "Actualizar precios"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-[13px] font-medium text-foreground/80 transition hover:border-border-strong hover:text-foreground"
+            >
+              <span className="text-[16px] leading-none">+</span>
+              Añadir posición
+            </button>
+          </div>
         }
       />
 
