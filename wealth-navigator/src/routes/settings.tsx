@@ -481,8 +481,8 @@ function SettingsPage() {
           title="Tipos de cambio"
           description="Base manual a EUR usada para traducir posiciones en otras divisas al valor consolidado del dashboard."
         >
-          <div className="overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-[13px]">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full min-w-[480px] text-[13px]">
               <thead className="bg-muted/40">
                 <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Divisa</th>
@@ -566,8 +566,8 @@ function SettingsPage() {
             title="Lectura FX"
             description="Cómo se interpretan las divisas en el portfolio."
           >
-            <div className="overflow-hidden rounded-lg border border-border">
-              <table className="w-full text-[13px]">
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full min-w-[420px] text-[13px]">
                 <thead className="bg-muted/40">
                   <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                     <th className="px-4 py-3 font-medium">Concepto</th>

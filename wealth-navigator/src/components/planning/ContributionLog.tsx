@@ -21,32 +21,38 @@ export function ContributionLog({ plan }: { plan: InvestmentPlan }) {
 
   return (
     <SectionCard title={`LOG — ${plan.name}`}>
-      <table className="w-full text-[12px]">
-        <thead className="text-muted-foreground">
-          <tr className="text-left">
-            <th className="py-1">Fecha</th>
-            <th>Aportado</th>
-            <th>Precio</th>
-            <th>Unidades</th>
-            <th>Multi</th>
-            <th>Señal</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contributions.map((c) => (
-            <tr key={c.id} className="border-t border-border">
-              <td className="py-1">{c.date}</td>
-              <td className="tabular-nums">
-                {c.actual_amount != null ? `${Number(c.actual_amount).toFixed(0)} €` : "—"}
-              </td>
-              <td className="tabular-nums">{c.price != null ? Number(c.price).toFixed(2) : "—"}</td>
-              <td className="tabular-nums">{c.units != null ? Number(c.units).toFixed(4) : "—"}</td>
-              <td>{c.multiplier != null ? `×${Number(c.multiplier)}` : "—"}</td>
-              <td className="text-muted-foreground">{c.signal_note ?? ""}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[440px] text-[12px]">
+          <thead className="text-muted-foreground">
+            <tr className="text-left">
+              <th className="py-1">Fecha</th>
+              <th>Aportado</th>
+              <th>Precio</th>
+              <th>Unidades</th>
+              <th>Multi</th>
+              <th>Señal</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {contributions.map((c) => (
+              <tr key={c.id} className="border-t border-border">
+                <td className="py-1">{c.date}</td>
+                <td className="tabular-nums">
+                  {c.actual_amount != null ? `${Number(c.actual_amount).toFixed(0)} €` : "—"}
+                </td>
+                <td className="tabular-nums">
+                  {c.price != null ? Number(c.price).toFixed(2) : "—"}
+                </td>
+                <td className="tabular-nums">
+                  {c.units != null ? Number(c.units).toFixed(4) : "—"}
+                </td>
+                <td>{c.multiplier != null ? `×${Number(c.multiplier)}` : "—"}</td>
+                <td className="text-muted-foreground">{c.signal_note ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-border pt-3 text-[12px]">
         <span>
           Total aportado: <b>{totalInvested.toFixed(0)} €</b>

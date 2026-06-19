@@ -73,8 +73,19 @@ function NetWorthBody() {
           hint={`Cierre ${formatMonth(last.month)}`}
           series={netTrend}
         />
-        <KpiCard label="Activos" value={money.format(last.assets)} hint="Total bruto del cierre" series={assetsTrend} />
-        <KpiCard label="Pasivos" value={money.format(last.liabilities)} hint="Préstamos y deudas" series={liabTrend} sparkColor="var(--negative)" />
+        <KpiCard
+          label="Activos"
+          value={money.format(last.assets)}
+          hint="Total bruto del cierre"
+          series={assetsTrend}
+        />
+        <KpiCard
+          label="Pasivos"
+          value={money.format(last.liabilities)}
+          hint="Préstamos y deudas"
+          series={liabTrend}
+          sparkColor="var(--negative)"
+        />
         <KpiCard
           label="Crecimiento"
           value={money.format1(totalGrowth)}
@@ -95,8 +106,8 @@ function NetWorthBody() {
 
       <section>
         <SectionLabel>Snapshots del rango</SectionLabel>
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-[13px]">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <table className="w-full min-w-[560px] text-[13px]">
             <thead className="bg-muted/40">
               <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Mes</th>
@@ -118,12 +129,24 @@ function NetWorthBody() {
                     className="cursor-pointer transition hover:bg-muted/40"
                   >
                     <td className="px-4 py-3 font-medium">{formatMonth(p.month)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{money.format1(p.assets)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{money.format1(p.liabilities)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">{money.format1(p.netWorth)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{money.format1(p.savings)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      {money.format1(p.assets)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      {money.format1(p.liabilities)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums font-medium">
+                      {money.format1(p.netWorth)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      {money.format1(p.savings)}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      {next ? <DeltaBadge value={delta} /> : <span className="text-muted-foreground">—</span>}
+                      {next ? (
+                        <DeltaBadge value={delta} />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 );

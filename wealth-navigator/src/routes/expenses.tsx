@@ -196,8 +196,8 @@ function ExpensesBody() {
 
       <section>
         <SectionLabel>Detalle por mes</SectionLabel>
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-[13px]">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <table className="w-full min-w-[480px] text-[13px]">
             <thead className="bg-muted/40">
               <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Mes</th>

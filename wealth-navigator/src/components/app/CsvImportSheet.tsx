@@ -153,8 +153,8 @@ export function CsvImportSheet({ open, onOpenChange }: Props) {
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="overflow-hidden rounded-lg border border-border">
-                <table className="w-full text-[12px]">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full min-w-[420px] text-[12px]">
                   <thead className="bg-muted/40">
                     <tr className="text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                       <th className="px-3 py-2 font-medium">Fecha</th>

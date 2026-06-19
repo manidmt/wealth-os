@@ -294,8 +294,8 @@ function PortfolioPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-[13px]">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full min-w-[520px] text-[13px]">
               <thead className="bg-muted/40">
                 <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                   <th className="px-4 py-3 font-medium">
