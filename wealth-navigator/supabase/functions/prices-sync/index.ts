@@ -46,11 +46,22 @@ serve(async (req) => {
     .in("asset_type", QUOTED);
   if (error) return corsResponse({ error: error.message }, 400);
 
-  const eligible = (positions ?? []).filter(
-    (p: { ticker: string | null; updated_at: string }) =>
-      p.ticker && p.ticker.trim() !== "" &&
+  // Solo cotizados que no se actualizaron hoy. Los que no tienen ticker se
+  // reportan como omitidos ("sin ticker") para que el usuario sepa por qué no
+  // se han actualizado, en vez de ignorarlos en silencio.
+  const stale = (positions ?? []).filter(
+    (p: { updated_at: string }) =>
       new Date(p.updated_at).toISOString().slice(0, 10) < today,
   );
+
+  const eligible: { id: string; asset_name: string; ticker: string }[] = [];
+  for (const p of stale) {
+    if (p.ticker && p.ticker.trim() !== "") {
+      eligible.push(p);
+    } else {
+      skipped.push({ name: p.asset_name, reason: "sin ticker" });
+    }
+  }
 
   for (const p of eligible) {
     try {
