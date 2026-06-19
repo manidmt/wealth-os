@@ -50,6 +50,7 @@ import { PlanRow } from "@/components/planning/PlanRow";
 import { JanuaryWizard } from "@/components/planning/JanuaryWizard";
 import { MonthlyRoutine } from "@/components/planning/MonthlyRoutine";
 import { ContributionLog } from "@/components/planning/ContributionLog";
+import { BackfillContributions } from "@/components/planning/BackfillContributions";
 import { SignalsPanel } from "@/components/planning/SignalsPanel";
 import { useLatestSignals } from "@/lib/signals-api";
 import { effectiveQuota, type SignalMap } from "@/lib/strategy-engine";
@@ -340,7 +341,7 @@ export function InvestmentPlanning() {
 
 function ContributionHistory({
   plan,
-  monthlyFinancials: _monthlyFinancials,
+  monthlyFinancials,
 }: {
   plan: InvestmentPlan;
   monthlyFinancials: MonthlyFinancials[];
@@ -396,6 +397,7 @@ function ContributionHistory({
           </table>
         </div>
       )}
+      <BackfillContributions plan={plan} monthlyFinancials={monthlyFinancials} />
     </SectionCard>
   );
 }

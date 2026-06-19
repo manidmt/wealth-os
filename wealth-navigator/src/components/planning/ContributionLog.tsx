@@ -3,6 +3,7 @@ import { SectionCard } from "@/components/app/SectionCard";
 import { Input } from "@/components/ui/input";
 import type { InvestmentPlan } from "@/lib/planning-api";
 import { usePlanContributions } from "@/lib/planning-api";
+import { BackfillContributions } from "@/components/planning/BackfillContributions";
 
 export function ContributionLog({ plan }: { plan: InvestmentPlan }) {
   const { data: contributions = [] } = usePlanContributions(plan.id);
@@ -74,6 +75,7 @@ export function ContributionLog({ plan }: { plan: InvestmentPlan }) {
           </span>
         )}
       </div>
+      <BackfillContributions plan={plan} />
     </SectionCard>
   );
 }
