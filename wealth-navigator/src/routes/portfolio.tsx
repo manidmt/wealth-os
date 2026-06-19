@@ -21,9 +21,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useSyncPrices } from "@/lib/prices-api";
+import {
+  sortPositions,
+  TEXT_KEYS,
+  type SortKey,
+  type SortDir,
+  type PnlMode,
+} from "@/lib/position-sort";
+
+function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <ChevronsUpDown className="h-3 w-3 opacity-30" />;
+  return dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+}
 
 export const Route = createFileRoute("/portfolio")({
   head: () => ({
@@ -116,6 +128,21 @@ function PortfolioPage() {
   );
   const filteredTotal = filtered.reduce((s, p) => s + p.marketValueEur, 0);
   const hasFilter = categoryFilter !== "all" || platformFilter !== "all";
+
+  const [sortKey, setSortKey] = useState<SortKey>("marketValueEur");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [pnlMode, setPnlMode] = useState<PnlMode>("pct");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(TEXT_KEYS.includes(key) ? "asc" : "desc");
+    }
+  }
+
+  const sorted = sortPositions(filtered, sortKey, sortDir, pnlMode);
 
   // Freshness from dashboard data
   const generatedAt = data.generatedAt;
@@ -271,14 +298,71 @@ function PortfolioPage() {
             <table className="w-full text-[13px]">
               <thead className="bg-muted/40">
                 <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Activo</th>
-                  <th className="px-4 py-3 font-medium">Plataforma</th>
-                  <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">
-                    Cantidad
+                  <th className="px-4 py-3 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("assetName")}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                    >
+                      Activo <SortArrow active={sortKey === "assetName"} dir={sortDir} />
+                    </button>
                   </th>
-                  <th className="hidden px-4 py-3 font-medium text-right md:table-cell">P/L</th>
-                  <th className="px-4 py-3 font-medium text-right">Valor</th>
-                  <th className="px-4 py-3 font-medium text-right">Peso</th>
+                  <th className="px-4 py-3 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("platform")}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                    >
+                      Plataforma <SortArrow active={sortKey === "platform"} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("quantity")}
+                      className="inline-flex w-full items-center justify-end gap-1 hover:text-foreground"
+                    >
+                      Cantidad <SortArrow active={sortKey === "quantity"} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="hidden px-4 py-3 font-medium text-right md:table-cell">
+                    <div className="inline-flex w-full items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPnlMode((m) => (m === "pct" ? "eur" : "pct"))}
+                        className="hover:text-foreground"
+                        title="Cambiar entre % y €"
+                      >
+                        P/L {pnlMode === "pct" ? "%" : "€"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("pnl")}
+                        className="hover:text-foreground"
+                        aria-label="Ordenar por P/L"
+                      >
+                        <SortArrow active={sortKey === "pnl"} dir={sortDir} />
+                      </button>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 font-medium text-right">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("marketValueEur")}
+                      className="inline-flex w-full items-center justify-end gap-1 hover:text-foreground"
+                    >
+                      Valor <SortArrow active={sortKey === "marketValueEur"} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 font-medium text-right">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("weight")}
+                      className="inline-flex w-full items-center justify-end gap-1 hover:text-foreground"
+                    >
+                      Peso <SortArrow active={sortKey === "weight"} dir={sortDir} />
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -302,7 +386,7 @@ function PortfolioPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((p) => {
+                  sorted.map((p) => {
                     const w = total > 0 ? (p.marketValueEur / total) * 100 : 0;
                     const pnlPositive = p.pnlPct != null && p.pnlPct > 0;
                     const pnlNegative = p.pnlPct != null && p.pnlPct < 0;
@@ -341,8 +425,9 @@ function PortfolioPage() {
                                     : "text-muted-foreground"
                               }
                             >
-                              {pnlPositive ? "+" : ""}
-                              {(p.pnlPct * 100).toFixed(2)}%
+                              {pnlMode === "pct"
+                                ? `${pnlPositive ? "+" : ""}${(p.pnlPct * 100).toFixed(2)}%`
+                                : `${p.pnlValueEur >= 0 ? "+" : ""}${money.format1(p.pnlValueEur)}`}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
