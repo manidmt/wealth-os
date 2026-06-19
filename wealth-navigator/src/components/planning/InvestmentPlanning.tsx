@@ -56,6 +56,7 @@ import { effectiveQuota, type SignalMap } from "@/lib/strategy-engine";
 import { useSyncContributionToPosition } from "@/lib/portfolio-sync";
 import { usePortfolioPositions } from "@/lib/portfolio-api";
 import { rankPositions, suggestPosition } from "@/lib/position-match";
+import { feedsPortfolio } from "@/lib/contribution-sync-rule";
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 
@@ -729,7 +730,7 @@ function ContributionModal({
       units: values.price ? values.actual_amount / values.price : null,
       multiplier: values.multiplier ?? null,
     });
-    if (values.price && values.price > 0) {
+    if (feedsPortfolio(month) && values.price && values.price > 0) {
       syncPosition.mutate({
         plan,
         amount: values.actual_amount,
