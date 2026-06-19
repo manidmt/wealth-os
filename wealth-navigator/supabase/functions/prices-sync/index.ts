@@ -86,9 +86,16 @@ serve(async (req) => {
       const yhCur = (currency ?? "EUR").toUpperCase();
       const rate = await fx(yhCur, posCur);
       const finalPrice = price * rate;
+      // Cambio de la divisa de la posición a EUR, para que el front convierta
+      // los agregados (valor/peso) correctamente en vez de asumir rateToEur=1.
+      const fxToEur = await fx(posCur, "EUR");
       const { error: uErr } = await db
         .from("portfolio_positions")
-        .update({ current_price: finalPrice, price_updated_at: new Date().toISOString() })
+        .update({
+          current_price: finalPrice,
+          fx_to_eur: fxToEur,
+          price_updated_at: new Date().toISOString(),
+        })
         .eq("id", p.id);
       if (uErr) throw new Error(uErr.message);
       updated.push({ name: p.asset_name, price: finalPrice });

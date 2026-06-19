@@ -78,8 +78,9 @@ function rowToPosition(row: any, totalMarketValueEur: number): PortfolioPosition
   const quantity = Number(row.quantity);
   const avgCost = Number(row.avg_cost);
   const currentPrice = Number(row.current_price);
-  // Simplified: assume rateToEur = 1 (no FX service)
-  const rateToEur = 1;
+  // Cambio a EUR de la divisa de la posición (lo escribe la función de precios).
+  // null/ausente → 1 (posición en EUR o aún sin sincronizar precio).
+  const rateToEur = row.fx_to_eur != null ? Number(row.fx_to_eur) : 1;
   const costBasis = quantity * avgCost;
   const marketValue = quantity * currentPrice;
   const pnlValue = marketValue - costBasis;
@@ -87,7 +88,8 @@ function rowToPosition(row: any, totalMarketValueEur: number): PortfolioPosition
   const costBasisEur = costBasis * rateToEur;
   const marketValueEur = marketValue * rateToEur;
   const pnlValueEur = pnlValue * rateToEur;
-  const portfolioWeight = totalMarketValueEur > 0 ? (marketValueEur / totalMarketValueEur) * 100 : 0;
+  const portfolioWeight =
+    totalMarketValueEur > 0 ? (marketValueEur / totalMarketValueEur) * 100 : 0;
 
   return {
     id: row.id,
@@ -130,7 +132,11 @@ export function usePortfolioPositions() {
       if (error) throw error;
       const rows = data ?? [];
       // First pass: compute total to derive weights
-      const rawTotals = rows.reduce((sum: number, r: Record<string, unknown>) => sum + Number(r.quantity) * Number(r.current_price), 0);
+      const rawTotals = rows.reduce(
+        (sum: number, r: Record<string, unknown>) =>
+          sum + Number(r.quantity) * Number(r.current_price),
+        0,
+      );
       return rows.map((row: Record<string, unknown>) => rowToPosition(row, rawTotals));
     },
     enabled: !!user,
