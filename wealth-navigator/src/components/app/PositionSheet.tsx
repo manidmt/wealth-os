@@ -99,7 +99,11 @@ export function PositionSheet(props: Props) {
     }
     setAddQty("");
     setAddPrice("");
-  }, [open, position]);
+    // Sembramos al abrir o al cambiar de posición (por id). Deliberadamente NO
+    // dependemos del objeto `position` completo: si la query revalida en segundo
+    // plano (mismo id, nueva referencia) no queremos pisar lo que el usuario escribe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, position?.id]);
 
   const resolvedPlatform = platform === "__custom__" ? customPlatform.trim() : platform;
 

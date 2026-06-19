@@ -9,7 +9,11 @@ import { PositionSheet } from "@/components/app/PositionSheet";
 import { BarList, DonutChart } from "@/components/charts/charts";
 import { useMoney } from "@/components/app/CurrencyProvider";
 import { useDashboard } from "@/hooks/use-dashboard";
-import { usePortfolioPositions, ASSET_TYPE_LABELS, type PortfolioPosition } from "@/lib/portfolio-api";
+import {
+  usePortfolioPositions,
+  ASSET_TYPE_LABELS,
+  type PortfolioPosition,
+} from "@/lib/portfolio-api";
 import {
   Select,
   SelectContent,
@@ -39,7 +43,18 @@ function PortfolioPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState<PortfolioPosition | null>(null);
 
+  // El drawer/detalle debe reflejar el dato vivo de la lista (que revalida tras
+  // editar), no el snapshot capturado al hacer clic. Si la posición ya no existe
+  // (borrada), caemos al snapshot para no romper la animación de cierre.
+  const selectedLive = selected ? (positions.find((p) => p.id === selected.id) ?? selected) : null;
+
   const total = positions.reduce((s, p) => s + p.marketValueEur, 0);
+
+  // P&L no realizado agregado: solo activos con coste (excluye cash en broker).
+  const investable = positions.filter((p) => p.assetType !== "broker_cash");
+  const costBasisTotal = investable.reduce((s, p) => s + p.costBasisEur, 0);
+  const pnlTotal = investable.reduce((s, p) => s + p.pnlValueEur, 0);
+  const pnlPctTotal = costBasisTotal > 0 ? (pnlTotal / costBasisTotal) * 100 : null;
 
   const byCategoryMap = new Map<string, number>();
   for (const p of positions) {
@@ -59,7 +74,8 @@ function PortfolioPage() {
     .sort((a, b) => b.value - a.value);
 
   const categories = useMemo(
-    () => Array.from(new Set(positions.map((p) => ASSET_TYPE_LABELS[p.assetType] ?? "Otros"))).sort(),
+    () =>
+      Array.from(new Set(positions.map((p) => ASSET_TYPE_LABELS[p.assetType] ?? "Otros"))).sort(),
     [positions],
   );
   const platforms = useMemo(
@@ -72,7 +88,8 @@ function PortfolioPage() {
 
   const filtered = positions.filter(
     (p) =>
-      (categoryFilter === "all" || (ASSET_TYPE_LABELS[p.assetType] ?? "Otros") === categoryFilter) &&
+      (categoryFilter === "all" ||
+        (ASSET_TYPE_LABELS[p.assetType] ?? "Otros") === categoryFilter) &&
       (platformFilter === "all" || p.platform === platformFilter),
   );
   const filteredTotal = filtered.reduce((s, p) => s + p.marketValueEur, 0);
@@ -109,7 +126,7 @@ function PortfolioPage() {
       />
 
       <div className="space-y-10 px-4 py-8 md:px-8">
-        <section>
+        <section className="grid gap-5 sm:grid-cols-2">
           <KpiCard
             accent="primary"
             label="Valor de mercado"
@@ -122,6 +139,20 @@ function PortfolioPage() {
                 </span>
                 {freshness} · {positions.length} posiciones · {platforms.length} plataformas
               </span>
+            }
+          />
+          <KpiCard
+            label="P&L no realizado"
+            value={
+              <span className={pnlTotal >= 0 ? "text-positive" : "text-negative"}>
+                {pnlTotal >= 0 ? "+" : ""}
+                {money.format(pnlTotal)}
+              </span>
+            }
+            hint={
+              pnlPctTotal != null
+                ? `${pnlPctTotal >= 0 ? "+" : ""}${pnlPctTotal.toFixed(2)}% sobre coste · base ${money.format(costBasisTotal)}`
+                : "Sin coste registrado"
             }
           />
         </section>
@@ -209,7 +240,9 @@ function PortfolioPage() {
                 <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Activo</th>
                   <th className="px-4 py-3 font-medium">Plataforma</th>
-                  <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Cantidad</th>
+                  <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">
+                    Cantidad
+                  </th>
                   <th className="hidden px-4 py-3 font-medium text-right md:table-cell">P/L</th>
                   <th className="px-4 py-3 font-medium text-right">Valor</th>
                   <th className="px-4 py-3 font-medium text-right">Peso</th>
@@ -299,17 +332,15 @@ function PortfolioPage() {
       </div>
 
       <PositionDrawer
-        position={selected}
+        position={selectedLive}
         totalValue={total}
         open={!!selected}
-        onOpenChange={(o) => { if (!o) setSelected(null); }}
+        onOpenChange={(o) => {
+          if (!o) setSelected(null);
+        }}
       />
 
-      <PositionSheet
-        mode="create"
-        open={addOpen}
-        onOpenChange={setAddOpen}
-      />
+      <PositionSheet mode="create" open={addOpen} onOpenChange={setAddOpen} />
     </AppShell>
   );
 }
