@@ -7,6 +7,7 @@ import { DeltaBadge } from "@/components/app/DeltaBadge";
 import { NetWorthAreaChart } from "@/components/charts/charts";
 import { RangeProvider, RangeToolbar, useRange } from "@/components/app/RangeToolbar";
 import { MonthDetailDrawer } from "@/components/app/MonthDetailDrawer";
+import { CashAccountsCard } from "@/components/app/CashAccountsCard";
 import { useMoney } from "@/components/app/CurrencyProvider";
 import { formatMonth } from "@/lib/dashboard-data";
 import { useDashboard } from "@/hooks/use-dashboard";
@@ -155,6 +156,8 @@ function NetWorthBody() {
           </table>
         </div>
       </section>
+
+      <CashAccountsCard />
 
       <MonthDetailDrawer
         month={selectedMonth}
