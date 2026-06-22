@@ -22,7 +22,7 @@ export function AppShell({ children, pageEyebrow }: Props) {
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur md:px-6">
+          <header className="sticky top-0 z-30 flex min-h-[3.5rem] items-center justify-between gap-3 border-b border-border bg-background/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:px-6">
             <div className="flex items-center gap-3 min-w-0">
               <SidebarTrigger className="-ml-1" />
               <div className="hidden h-5 w-px bg-border sm:block" />
