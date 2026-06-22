@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import rawData from "@/data/dashboard-data.json";
+import { resolveCash, type CashResolution } from "./cash";
 
 export type Holding = {
   label: string;
@@ -40,6 +41,7 @@ export type DashboardData = {
     latestSavings: number;
   };
   allocation: { label: string; value: number }[];
+  cash: CashResolution;
   platforms: { label: string; value: number }[];
   holdings: Holding[];
   portfolio: {
@@ -64,7 +66,12 @@ const ASSET_LABELS: Record<string, string> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function computeDashboard(movements: any[], positions: any[], snapshots: any[]): DashboardData {
+function computeDashboard(
+  movements: any[],
+  positions: any[],
+  snapshots: any[],
+  cashAccounts: { balance: unknown }[],
+): DashboardData {
   const now = new Date();
   const currentCalendarMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -94,14 +101,18 @@ function computeDashboard(movements: any[], positions: any[], snapshots: any[]):
 
   // Portfolio
   const totalPortfolio = positions.reduce(
-    (s: number, p: Record<string, unknown>) => s + Number(p.quantity) * Number(p.current_price),
+    (s: number, p: Record<string, unknown>) =>
+      s + Number(p.quantity) * Number(p.current_price) * (Number(p.fx_to_eur) || 1),
     0,
   );
 
   const byPlatformMap = new Map<string, number>();
   const byCategoryMap = new Map<string, number>();
   for (const p of positions) {
-    const val = Number((p as Record<string, unknown>).quantity) * Number((p as Record<string, unknown>).current_price);
+    const val =
+      Number((p as Record<string, unknown>).quantity) *
+      Number((p as Record<string, unknown>).current_price) *
+      (Number((p as Record<string, unknown>).fx_to_eur) || 1);
     const platform = (p as Record<string, unknown>).platform as string || "Sin plataforma";
     byPlatformMap.set(platform, (byPlatformMap.get(platform) ?? 0) + val);
     const cat = (p as Record<string, unknown>).asset_type as string || "other";
@@ -117,7 +128,7 @@ function computeDashboard(movements: any[], positions: any[], snapshots: any[]):
       label: p.asset_name as string,
       category: p.asset_type as string,
       platform: (p.platform as string) ?? "",
-      value: Number(p.quantity) * Number(p.current_price),
+      value: Number(p.quantity) * Number(p.current_price) * (Number(p.fx_to_eur) || 1),
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -207,12 +218,19 @@ function computeDashboard(movements: any[], positions: any[], snapshots: any[]):
   const baseLiabilities = prevClosedEntry ? prevClosedEntry.liabilities : 0;
   const liveNW = baseNW + currentSavings + portfolioDelta;
 
+  const cash = resolveCash({
+    accounts: cashAccounts.map((a) => ({ balance: Number(a.balance) })),
+    netWorthSnapshot: liveNW,
+    portfolioEur: totalPortfolio,
+  });
+  const finalNW = cash.source === "accounts" ? totalPortfolio + cash.total : liveNW;
+
   // Always write a live entry for the current month (overrides any estimate from the series loop).
   const liveEntryData = {
     month: currentCalendarMonth,
-    assets: liveNW - baseLiabilities,
+    assets: finalNW - baseLiabilities,
     liabilities: baseLiabilities,
-    netWorth: liveNW,
+    netWorth: finalNW,
     savings: currentSavings,
   };
   const existingIdx = series.findIndex((s) => s.month === currentCalendarMonth);
@@ -246,7 +264,11 @@ function computeDashboard(movements: any[], positions: any[], snapshots: any[]):
       monthlyChange,
       latestSavings: currentSavings,
     },
-    allocation,
+    allocation:
+      cash.total > 0
+        ? [...allocation, { label: "Efectivo", value: cash.total }].sort((a, b) => b.value - a.value)
+        : allocation,
+    cash,
     platforms: byPlatform,
     holdings,
     portfolio: { holdings, byPlatform },
@@ -266,17 +288,25 @@ export function useLiveDashboardData() {
   return useQuery<DashboardData>({
     queryKey: ["dashboard-snapshot", user?.id],
     queryFn: async () => {
-      const [{ data: movements, error: movErr }, { data: positions, error: posErr }, { data: snapshots, error: snapErr }] =
-        await Promise.all([
-          supabase.from("movements").select("type, date, category, amount, currency, excluded").order("date"),
-          supabase.from("portfolio_positions").select("*"),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).from("monthly_snapshots").select("month, assets, liabilities, net_worth, savings, portfolio_value").order("month"),
-        ]);
+      const [
+        { data: movements, error: movErr },
+        { data: positions, error: posErr },
+        { data: snapshots, error: snapErr },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { data: cashAccounts, error: cashErr },
+      ] = await Promise.all([
+        supabase.from("movements").select("type, date, category, amount, currency, excluded").order("date"),
+        supabase.from("portfolio_positions").select("*"),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from("monthly_snapshots").select("month, assets, liabilities, net_worth, savings, portfolio_value").order("month"),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from("cash_accounts").select("balance"),
+      ]);
       if (movErr) throw movErr;
       if (posErr) throw posErr;
       if (snapErr) throw snapErr;
-      return computeDashboard(movements ?? [], positions ?? [], snapshots ?? []);
+      if (cashErr) throw cashErr;
+      return computeDashboard(movements ?? [], positions ?? [], snapshots ?? [], cashAccounts ?? []);
     },
     enabled: !!user,
     placeholderData: rawData as DashboardData,
