@@ -64,10 +64,10 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Body: two-column on lg */}
-          <div className="min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[1fr_1.5fr]">
+          {/* Body: single scroll on mobile, two-column with internal scroll on lg */}
+          <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[1fr_1.5fr] lg:overflow-hidden">
             {/* Left column — stats + etiquetas */}
-            <div className="overflow-y-auto border-b border-border p-6 lg:border-b-0 lg:border-r">
+            <div className="border-b border-border p-6 lg:overflow-y-auto lg:border-b-0 lg:border-r">
               <div className="space-y-6">
                 {/* Snapshot stats */}
                 {point ? (
@@ -148,7 +148,7 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
             </div>
 
             {/* Right column — movimientos */}
-            <div className="flex flex-col overflow-hidden">
+            <div className="flex flex-col lg:overflow-hidden">
               <div className="flex shrink-0 items-center justify-between px-6 py-4">
                 <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                   Movimientos
@@ -166,7 +166,7 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
                 </button>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+              <div className="px-6 pb-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                 {movementsLoading ? (
                   <div className="space-y-2">
                     {[1, 2, 3, 4].map((i) => (
