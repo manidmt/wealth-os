@@ -92,10 +92,19 @@ def get_month_comparison(df_movements_recent, current_month=None, previous_month
     }
 
 
+def _fx_to_eur(df):
+    # Cada posición guarda su precio en su divisa nativa; fx_to_eur la convierte
+    # a EUR (lo escribe el botón de precios). Ausente/NaN → 1 (EUR).
+    if "fx_to_eur" in df.columns:
+        return pd.to_numeric(df["fx_to_eur"], errors="coerce").fillna(1)
+    return 1
+
+
 def get_net_worth_summary(df_movements_recent, df_portfolio):
     df = df_portfolio.copy()
-    df["current_value"] = df["quantity"] * df["current_price"]
-    df["cost_value"] = df["quantity"] * df["avg_cost"]
+    fx = _fx_to_eur(df)
+    df["current_value"] = df["quantity"] * df["current_price"] * fx
+    df["cost_value"] = df["quantity"] * df["avg_cost"] * fx
     df["gain_loss"] = df["current_value"] - df["cost_value"]
     portfolio_value = df["current_value"].sum()
     portfolio_cost = df["cost_value"].sum()
@@ -116,8 +125,9 @@ def get_net_worth_summary(df_movements_recent, df_portfolio):
 
 def get_portfolio_summary(df_portfolio):
     df = df_portfolio.copy()
-    df["current_value"] = df["quantity"] * df["current_price"]
-    df["cost_value"] = df["quantity"] * df["avg_cost"]
+    fx = _fx_to_eur(df)
+    df["current_value"] = df["quantity"] * df["current_price"] * fx
+    df["cost_value"] = df["quantity"] * df["avg_cost"] * fx
     df["gain_loss"] = df["current_value"] - df["cost_value"]
     df["gain_loss_pct"] = (df["gain_loss"] / df["cost_value"]) * 100
     total_value = df["current_value"].sum()
