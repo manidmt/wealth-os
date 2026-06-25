@@ -9,6 +9,7 @@ import { AssistantMark } from "@/components/assistant/AssistantMark";
 import { PLAYBOOKS, SUGGESTIONS, type Playbook } from "@/lib/assistant-mock";
 import { useAuth } from "@/hooks/use-auth";
 import { AGENT_WS_BASE_URL } from "@/lib/agent-ws";
+import { useAgentMessages } from "@/lib/agent-api";
 
 const searchSchema = z.object({
   q: z.string().optional(),
@@ -48,6 +49,8 @@ function AssistantPage() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const streamingIdRef = useRef<string | null>(null);
+  const { data: persisted } = useAgentMessages();
+  const seededRef = useRef(false);
 
   // WebSocket connection
   useEffect(() => {
@@ -115,6 +118,14 @@ function AssistantPage() {
     };
   }, [user?.id]);
 
+  // Seed persisted history once
+  useEffect(() => {
+    if (!seededRef.current && persisted && persisted.length > 0 && messages.length === 0) {
+      setMessages(persisted.map((m) => ({ id: m.id, role: m.role, content: m.content })));
+      seededRef.current = true;
+    }
+  }, [persisted, messages.length]);
+
   // Auto-focus
   useEffect(() => {
     inputRef.current?.focus();
@@ -151,7 +162,7 @@ function AssistantPage() {
       role: m.role === "user" ? "user" : "assistant",
       content: m.content,
     }));
-    wsRef.current.send(JSON.stringify({ message: trimmed, history }));
+    wsRef.current.send(JSON.stringify({ message: trimmed, history, remember: true }));
   }
 
   function runPlaybook(p: Playbook) {

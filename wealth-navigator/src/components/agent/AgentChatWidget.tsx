@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useAgentMessages } from "@/lib/agent-api";
 
 const WS_BASE_URL =
   (import.meta.env.VITE_AGENT_WS_URL as string | undefined) ?? "ws://localhost:8000";
@@ -15,6 +16,8 @@ export function AgentChatWidget() {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { data: persisted } = useAgentMessages();
+  const seededRef = useRef(false);
 
   useEffect(() => {
     if (!open || !user?.id) return;
@@ -26,6 +29,7 @@ export function AgentChatWidget() {
     ws.onerror = () => setConnected(false);
     let streamingId: string | null = null;
     ws.onmessage = (ev) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let parsed: any = null;
       try {
         parsed = JSON.parse(ev.data);
@@ -71,6 +75,20 @@ export function AgentChatWidget() {
   }, [open, user?.id]);
 
   useEffect(() => {
+    if (open && !seededRef.current && persisted && persisted.length > 0) {
+      setMessages(
+        persisted.map((m) => ({
+          id: m.id,
+          role: m.role === "user" ? ("user" as const) : ("system" as const),
+          content: m.content,
+        })),
+      );
+      seededRef.current = true;
+    }
+    if (!open) seededRef.current = false;
+  }, [open, persisted]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
@@ -81,7 +99,7 @@ export function AgentChatWidget() {
       role: m.role === "user" ? "user" : "assistant",
       content: m.content,
     }));
-    wsRef.current.send(JSON.stringify({ message: text, history }));
+    wsRef.current.send(JSON.stringify({ message: text, history, remember: true }));
     setMessages((m) => [...m, { role: "user", content: text, id: crypto.randomUUID() }]);
     setInput("");
   }
