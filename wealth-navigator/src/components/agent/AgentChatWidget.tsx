@@ -100,7 +100,7 @@ export function AgentChatWidget() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="fixed bottom-24 right-6 z-50 flex h-[520px] max-h-[calc(100dvh-7rem)] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
               <div className="text-[13px] font-semibold tracking-tight">Agente</div>
@@ -108,9 +108,19 @@ export function AgentChatWidget() {
                 {connected ? "Conectado" : "Desconectado"}
               </div>
             </div>
-            <span
-              className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
-            />
+            <div className="flex items-center gap-3">
+              <span
+                className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+              />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Cerrar chat"
+                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
