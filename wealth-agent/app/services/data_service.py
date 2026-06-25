@@ -34,6 +34,11 @@ def load_user_data(user_id):
     supabase = get_supabase_client()
     df_movements = load_table(supabase, "movements", user_id)
     df_portfolio = load_table(supabase, "portfolio_positions", user_id)
+    # Usuario sin movimientos: load_table devuelve un DataFrame vacío sin columnas.
+    # Devolvemos uno con la columna 'date' para que el resto del flujo no rompa.
+    if df_movements.empty:
+        df_movements = pd.DataFrame(columns=["date"])
+        return df_movements, df_movements.copy(), df_portfolio
     df_movements["date"] = pd.to_datetime(df_movements["date"])
     max_date = df_movements["date"].max()
     min_date = max_date - timedelta(days=180)

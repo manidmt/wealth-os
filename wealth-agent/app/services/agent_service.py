@@ -8,8 +8,13 @@ client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 
 def build_system_prompt(df_movements_recent):
-    data_max_date = df_movements_recent["date"].max().strftime("%Y-%m-%d")
-    data_current_month = df_movements_recent["date"].max().strftime("%Y-%m")
+    if df_movements_recent.empty or df_movements_recent["date"].isna().all():
+        from datetime import date as _date
+        data_max_date = _date.today().strftime("%Y-%m-%d")
+        data_current_month = _date.today().strftime("%Y-%m")
+    else:
+        data_max_date = df_movements_recent["date"].max().strftime("%Y-%m-%d")
+        data_current_month = df_movements_recent["date"].max().strftime("%Y-%m")
     return f"""Eres un asistente financiero personal especializado en análisis de gastos e inversiones.
 
                 Tienes acceso a datos reales del usuario: movimientos bancarios y portfolio de inversión.
