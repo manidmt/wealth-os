@@ -2,7 +2,14 @@ import json
 from openai import AsyncOpenAI
 from app.config import OPENAI_API_KEY, MODEL
 from app.tools.financial_tools import TOOLS_SCHEMA, dispatch_tool
-from app.services.data_service import load_user_data
+from app.services.data_service import load_user_data, get_supabase_client
+from app.services.memory_service import (
+    load_memory,
+    load_recent_messages,
+    save_turn,
+    maybe_compact,
+    memory_block,
+)
 
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
@@ -53,11 +60,17 @@ def build_system_prompt(df_movements_recent):
             """
 
 
-async def run_agent_stream(user_id, message, history, context=None):
+async def run_agent_stream(user_id, message, history, context=None, remember=False):
     _, df_movements_recent, df_portfolio = load_user_data(user_id)
     system_prompt = build_system_prompt(df_movements_recent)
 
+    supabase = get_supabase_client()
+    mem = load_memory(supabase, user_id)
+
     system_messages = [{"role": "system", "content": system_prompt}]
+    block = memory_block(mem["facts"], mem["summary"])
+    if block:
+        system_messages.append({"role": "system", "content": block})
     if context:
         system_messages.append({
             "role": "system",
@@ -70,9 +83,14 @@ async def run_agent_stream(user_id, message, history, context=None):
             ),
         })
 
-    messages = [{"role": m.role, "content": m.content} for m in history]
-    messages.append({"role": "user", "content": message})
+    if remember:
+        window = load_recent_messages(supabase, user_id, mem["summarized_until"])
+        messages = window + [{"role": "user", "content": message}]
+    else:
+        messages = [{"role": m.role, "content": m.content} for m in history]
+        messages.append({"role": "user", "content": message})
 
+    full = ""
     for _ in range(5):
         response = await client.chat.completions.create(
             model=MODEL,
@@ -96,7 +114,11 @@ async def run_agent_stream(user_id, message, history, context=None):
             async for chunk in stream:
                 token = chunk.choices[0].delta.content
                 if token:
+                    full += token
                     yield token
+            if remember:
+                save_turn(supabase, user_id, message, full)
+                await maybe_compact(supabase, user_id, client, MODEL, mem)
             return
 
         messages.append(msg)
