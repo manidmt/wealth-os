@@ -159,10 +159,18 @@ export function useUpdateLot() {
 export function useDeleteLot() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; position_id: string; plan_contribution_id: string | null }) => {
-      if (input.plan_contribution_id) {
+    mutationFn: async (input: { id: string; position_id: string }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: lot, error: lotErr } = await (supabase as any)
+        .from("position_lots")
+        .select("plan_contribution_id")
+        .eq("id", input.id)
+        .single();
+      if (lotErr) throw lotErr;
+      if (lot.plan_contribution_id) {
         throw new Error("Este lote viene de una aportación del plan — edítalo o bórralo desde Planning.");
       }
+
       const others = (await fetchLots(input.position_id)).filter((l) => l.id !== input.id);
       if (others.length === 0) {
         throw new Error("No puedes borrar el único lote de una posición.");
