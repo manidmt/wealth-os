@@ -87,4 +87,10 @@ describe("computeBackfillLots", () => {
       },
     ]);
   });
+
+  it("lanza un error si las contribuciones superan la cantidad actual (sobre-cobertura)", () => {
+    const position = { id: "pos-5", quantity: 10, avg_cost: 5, created_at: "2026-01-01T00:00:00Z" };
+    const contributions = [{ id: "c1", date: "2026-01-10", price: 5, units: 15 }];
+    expect(() => computeBackfillLots(position, contributions)).toThrow(/exceed quantity/);
+  });
 });

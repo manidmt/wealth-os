@@ -63,6 +63,12 @@ export function computeBackfillLots(
   const coveredQty = valid.reduce((s, c) => s + c.units, 0);
   const remaining = position.quantity - coveredQty;
 
+  if (remaining < -EPSILON) {
+    throw new Error(
+      `computeBackfillLots: position ${position.id} contributions (${coveredQty}) exceed quantity (${position.quantity})`,
+    );
+  }
+
   if (remaining > EPSILON) {
     const coveredCost = valid.reduce((s, c) => s + c.units * c.price, 0);
     const targetCost = position.quantity * position.avg_cost;
