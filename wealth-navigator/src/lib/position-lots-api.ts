@@ -70,15 +70,18 @@ export type InsertLotInput = {
 /** Inserta un lote y recalcula el agregado de la posición. Función plana (no hook): la usan tanto useCreateLot como portfolio-sync.ts. */
 export async function insertPositionLot(input: InsertLotInput): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from("position_lots").insert({
-    user_id: input.user_id,
-    position_id: input.position_id,
-    plan_contribution_id: input.plan_contribution_id ?? null,
-    date: input.date,
-    quantity: input.quantity,
-    price: input.price,
-    notes: input.notes ?? null,
-  });
+  const { error } = await (supabase as any).from("position_lots").upsert(
+    {
+      user_id: input.user_id,
+      position_id: input.position_id,
+      plan_contribution_id: input.plan_contribution_id ?? null,
+      date: input.date,
+      quantity: input.quantity,
+      price: input.price,
+      notes: input.notes ?? null,
+    },
+    { onConflict: "plan_contribution_id" },
+  );
   if (error) throw error;
   await recomputePositionAggregate(input.position_id);
 }

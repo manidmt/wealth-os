@@ -130,7 +130,7 @@ export function PositionSheet(props: Props) {
     const price = n(currentPrice) || avg;
     if (!assetName || !resolvedPlatform || qty <= 0 || avg < 0) return;
 
-    await createPosition.mutateAsync({
+    const created = await createPosition.mutateAsync({
       assetName,
       ticker: ticker.trim() || undefined,
       isin: isin.trim() || undefined,
@@ -142,6 +142,12 @@ export function PositionSheet(props: Props) {
       currency,
       notes: notes.trim() || undefined,
       date,
+    });
+    await createLot.mutateAsync({
+      position_id: created.id,
+      date,
+      quantity: qty,
+      price: avg,
     });
     onOpenChange(false);
   }
@@ -161,8 +167,6 @@ export function PositionSheet(props: Props) {
       isin: isin.trim() || undefined,
       assetType,
       platform: resolvedPlatform,
-      quantity: qty,
-      avgCost: avg,
       currentPrice: price,
       currency,
       notes: notes.trim() || undefined,
@@ -402,6 +406,7 @@ export function PositionSheet(props: Props) {
                   placeholder="0"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
+                  disabled={mode === "edit"}
                   required
                   className="text-[13px] tabular-nums"
                 />
@@ -436,6 +441,7 @@ export function PositionSheet(props: Props) {
                   placeholder="0.00"
                   value={avgCost}
                   onChange={(e) => setAvgCost(e.target.value)}
+                  disabled={mode === "edit"}
                   required
                   className="text-[13px] tabular-nums"
                 />
@@ -456,6 +462,12 @@ export function PositionSheet(props: Props) {
                 />
               </div>
             </div>
+
+            {mode === "edit" && (
+              <p className="text-[11px] text-muted-foreground">
+                Cantidad y precio medio se gestionan ahora desde el historial de compras, abajo.
+              </p>
+            )}
 
             {mode === "create" && (
               <div className="space-y-1.5">
