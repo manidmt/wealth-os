@@ -518,7 +518,7 @@ export function PositionSheet(props: Props) {
               </Button>
             </div>
 
-            {(createPosition.isError || updatePosition.isError) && (
+            {(createPosition.isError || updatePosition.isError || createLot.isError) && (
               <p className="text-[12px] text-destructive">Error al guardar. Inténtalo de nuevo.</p>
             )}
           </form>
