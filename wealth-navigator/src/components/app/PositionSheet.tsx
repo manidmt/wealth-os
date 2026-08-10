@@ -25,6 +25,8 @@ import {
   type PortfolioAssetType,
   type PortfolioPosition,
 } from "@/lib/portfolio-api";
+import { PositionLotsTable } from "@/components/app/PositionLotsTable";
+import { useCreateLot } from "@/lib/position-lots-api";
 
 type Props =
   | { mode: "create"; open: boolean; onOpenChange: (o: boolean) => void }
@@ -49,6 +51,7 @@ export function PositionSheet(props: Props) {
 
   const createPosition = useCreatePosition();
   const updatePosition = useUpdatePosition();
+  const createLot = useCreateLot();
 
   const [assetName, setAssetName] = useState("");
   const [ticker, setTicker] = useState("");
@@ -118,7 +121,7 @@ export function PositionSheet(props: Props) {
       ? (existingQty * existingAvg + addQtyNum * addPriceNum) / newTotalQty
       : existingAvg;
 
-  const isPending = createPosition.isPending || updatePosition.isPending;
+  const isPending = createPosition.isPending || updatePosition.isPending || createLot.isPending;
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -169,14 +172,16 @@ export function PositionSheet(props: Props) {
 
   async function handleAddShares(e: React.FormEvent) {
     e.preventDefault();
-    if (!position || addQtyNum <= 0 || addPriceNum < 0) return;
+    if (!position || addQtyNum <= 0 || addPriceNum <= 0) return;
 
-    await updatePosition.mutateAsync({
-      id: position.id,
-      quantity: newTotalQty,
-      avgCost: newAvgCost,
+    await createLot.mutateAsync({
+      position_id: position.id,
+      date: todayStr(),
+      quantity: addQtyNum,
+      price: addPriceNum,
     });
-    onOpenChange(false);
+    setAddQty("");
+    setAddPrice("");
   }
 
   const title =
@@ -190,8 +195,8 @@ export function PositionSheet(props: Props) {
     mode === "create"
       ? "Portfolio"
       : mode === "add-shares"
-        ? position?.assetName ?? "Posición"
-        : position?.assetName ?? "Editar";
+        ? (position?.assetName ?? "Posición")
+        : (position?.assetName ?? "Editar");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -200,12 +205,8 @@ export function PositionSheet(props: Props) {
           <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             {eyebrow}
           </div>
-          <SheetTitle className="font-display text-2xl tracking-tight">
-            {title}
-          </SheetTitle>
-          <SheetDescription className="sr-only">
-            {title} en el portfolio
-          </SheetDescription>
+          <SheetTitle className="font-display text-2xl tracking-tight">{title}</SheetTitle>
+          <SheetDescription className="sr-only">{title} en el portfolio</SheetDescription>
         </SheetHeader>
 
         {mode === "add-shares" ? (
@@ -214,7 +215,9 @@ export function PositionSheet(props: Props) {
               <div className="text-muted-foreground">Posición actual</div>
               <div className="mt-1 flex justify-between tabular-nums">
                 <span className="font-medium">{existingQty} unidades</span>
-                <span className="text-muted-foreground">@ {existingAvg.toFixed(4)} {position?.currency}</span>
+                <span className="text-muted-foreground">
+                  @ {existingAvg.toFixed(4)} {position?.currency}
+                </span>
               </div>
             </div>
 
@@ -257,12 +260,20 @@ export function PositionSheet(props: Props) {
                 <div className="text-muted-foreground">Resultado tras la compra</div>
                 <div className="mt-1.5 grid grid-cols-2 gap-1 tabular-nums">
                   <span className="text-muted-foreground">Total unidades</span>
-                  <span className="text-right font-medium">{newTotalQty.toFixed(6).replace(/\.?0+$/, "")}</span>
+                  <span className="text-right font-medium">
+                    {newTotalQty.toFixed(6).replace(/\.?0+$/, "")}
+                  </span>
                   <span className="text-muted-foreground">Precio medio</span>
-                  <span className="text-right font-medium">{newAvgCost.toFixed(4)} {position?.currency}</span>
+                  <span className="text-right font-medium">
+                    {newAvgCost.toFixed(4)} {position?.currency}
+                  </span>
                   <span className="text-muted-foreground">Coste total</span>
                   <span className="text-right font-medium">
-                    {(newTotalQty * newAvgCost).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {position?.currency}
+                    {(newTotalQty * newAvgCost).toLocaleString("es-ES", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    {position?.currency}
                   </span>
                 </div>
               </div>
@@ -278,7 +289,7 @@ export function PositionSheet(props: Props) {
               </button>
               <Button
                 type="submit"
-                disabled={isPending || addQtyNum <= 0 || addPriceNum < 0}
+                disabled={isPending || addQtyNum <= 0 || addPriceNum <= 0}
                 className="min-w-[100px]"
               >
                 {isPending ? "Guardando…" : "Confirmar compra"}
@@ -291,7 +302,9 @@ export function PositionSheet(props: Props) {
             className="mt-6 flex flex-col gap-4 px-1"
           >
             <div className="space-y-1.5">
-              <Label htmlFor="pos-name" className="text-[12px]">Nombre del activo</Label>
+              <Label htmlFor="pos-name" className="text-[12px]">
+                Nombre del activo
+              </Label>
               <Input
                 id="pos-name"
                 placeholder="Ej. MSCI World ETF"
@@ -350,10 +363,7 @@ export function PositionSheet(props: Props) {
 
             <div className="space-y-1.5">
               <Label className="text-[12px]">Plataforma / broker</Label>
-              <Select
-                value={platform}
-                onValueChange={setPlatform}
-              >
+              <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger className="text-[13px]">
                   <SelectValue placeholder="Selecciona…" />
                 </SelectTrigger>
@@ -381,7 +391,9 @@ export function PositionSheet(props: Props) {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="pos-qty" className="text-[12px]">Cantidad</Label>
+                <Label htmlFor="pos-qty" className="text-[12px]">
+                  Cantidad
+                </Label>
                 <Input
                   id="pos-qty"
                   type="number"
@@ -413,7 +425,9 @@ export function PositionSheet(props: Props) {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="pos-avg" className="text-[12px]">Precio medio compra</Label>
+                <Label htmlFor="pos-avg" className="text-[12px]">
+                  Precio medio compra
+                </Label>
                 <Input
                   id="pos-avg"
                   type="number"
@@ -428,8 +442,7 @@ export function PositionSheet(props: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="pos-price" className="text-[12px]">
-                  Precio actual{" "}
-                  <span className="text-muted-foreground">(opc.)</span>
+                  Precio actual <span className="text-muted-foreground">(opc.)</span>
                 </Label>
                 <Input
                   id="pos-price"
@@ -447,8 +460,7 @@ export function PositionSheet(props: Props) {
             {mode === "create" && (
               <div className="space-y-1.5">
                 <Label htmlFor="pos-date" className="text-[12px]">
-                  Fecha de apertura{" "}
-                  <span className="text-muted-foreground">(opc.)</span>
+                  Fecha de apertura <span className="text-muted-foreground">(opc.)</span>
                 </Label>
                 <Input
                   id="pos-date"
@@ -483,13 +495,7 @@ export function PositionSheet(props: Props) {
               </button>
               <Button
                 type="submit"
-                disabled={
-                  isPending ||
-                  !assetName ||
-                  !resolvedPlatform ||
-                  !quantity ||
-                  !avgCost
-                }
+                disabled={isPending || !assetName || !resolvedPlatform || !quantity || !avgCost}
                 className="min-w-[100px]"
               >
                 {isPending
@@ -501,11 +507,15 @@ export function PositionSheet(props: Props) {
             </div>
 
             {(createPosition.isError || updatePosition.isError) && (
-              <p className="text-[12px] text-destructive">
-                Error al guardar. Inténtalo de nuevo.
-              </p>
+              <p className="text-[12px] text-destructive">Error al guardar. Inténtalo de nuevo.</p>
             )}
           </form>
+        )}
+
+        {mode !== "create" && position && (
+          <div className="mt-6 border-t border-border px-1 pt-4">
+            <PositionLotsTable positionId={position.id} currency={position.currency} />
+          </div>
         )}
       </SheetContent>
     </Sheet>
