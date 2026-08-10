@@ -34,7 +34,9 @@ export function usePositionLots(positionId: string | null) {
   });
 }
 
-async function fetchLots(positionId: string): Promise<{ id: string; quantity: number; price: number }[]> {
+async function fetchLots(
+  positionId: string,
+): Promise<{ id: string; quantity: number; price: number }[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from("position_lots")
@@ -81,10 +83,7 @@ export async function insertPositionLot(input: InsertLotInput): Promise<void> {
   await recomputePositionAggregate(input.position_id);
 }
 
-function invalidateAfterLotChange(
-  qc: ReturnType<typeof useQueryClient>,
-  positionId: string,
-) {
+function invalidateAfterLotChange(qc: ReturnType<typeof useQueryClient>, positionId: string) {
   qc.invalidateQueries({ queryKey: ["position_lots", positionId] });
   qc.invalidateQueries({ queryKey: ["portfolio-positions"] });
   qc.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
@@ -168,7 +167,9 @@ export function useDeleteLot() {
         .single();
       if (lotErr) throw lotErr;
       if (lot.plan_contribution_id) {
-        throw new Error("Este lote viene de una aportación del plan — edítalo o bórralo desde Planning.");
+        throw new Error(
+          "Este lote viene de una aportación del plan — edítalo o bórralo desde Planning.",
+        );
       }
 
       const others = (await fetchLots(input.position_id)).filter((l) => l.id !== input.id);

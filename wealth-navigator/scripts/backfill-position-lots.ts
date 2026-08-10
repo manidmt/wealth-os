@@ -24,7 +24,9 @@ async function main() {
     .select("id, plan_id, date, price, units");
   if (contribErr) throw contribErr;
 
-  const positionIdByPlanId = new Map((plans ?? []).map((p) => [p.id, p.portfolio_position_id as string]));
+  const positionIdByPlanId = new Map(
+    (plans ?? []).map((p) => [p.id, p.portfolio_position_id as string]),
+  );
   const contribsByPositionId = new Map<string, BackfillContribution[]>();
   for (const c of contributions ?? []) {
     const positionId = positionIdByPlanId.get(c.plan_id);
