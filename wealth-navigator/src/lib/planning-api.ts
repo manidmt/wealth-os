@@ -164,10 +164,13 @@ export function useUpsertContribution() {
       signal_note?: string | null;
     }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("plan_contributions")
-        .upsert({ ...input, user_id: user!.id }, { onConflict: "plan_id,date" });
+        .upsert({ ...input, user_id: user!.id }, { onConflict: "plan_id,date" })
+        .select()
+        .single();
       if (error) throw error;
+      return data as PlanContribution;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["plan_contributions", vars.plan_id] });

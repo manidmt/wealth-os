@@ -723,9 +723,10 @@ function ContributionModal({
   const planned = isStrategy ? strategyQuota : computePlannedAmount(plan, monthlyFinancials, month);
 
   async function onSubmit(values: ContributionForm) {
-    await upsert.mutateAsync({
+    const date = values.date + "-01";
+    const contribution = await upsert.mutateAsync({
       plan_id: plan.id,
-      date: values.date + "-01",
+      date,
       planned_amount: planned,
       actual_amount: values.actual_amount,
       price: values.price ?? null,
@@ -737,6 +738,8 @@ function ContributionModal({
         plan,
         amount: values.actual_amount,
         units: values.actual_amount / values.price,
+        date,
+        contributionId: contribution.id,
       });
     }
     onClose();

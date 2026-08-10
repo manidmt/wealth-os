@@ -47,7 +47,7 @@ export function BackfillContributions({
     setSaving(true);
     try {
       for (const c of built) {
-        await upsert.mutateAsync({
+        const contribution = await upsert.mutateAsync({
           plan_id: plan.id,
           date: c.date,
           planned_amount: computePlannedAmount(plan, monthlyFinancials, c.month),
@@ -57,7 +57,13 @@ export function BackfillContributions({
           multiplier: null,
         });
         if (feedsPortfolio(c.month)) {
-          await syncPosition.mutateAsync({ plan, amount: c.amount, units: c.units });
+          await syncPosition.mutateAsync({
+            plan,
+            amount: c.amount,
+            units: c.units,
+            date: c.date,
+            contributionId: contribution.id,
+          });
         }
       }
       qc.invalidateQueries({ queryKey: ["plan_contributions", "all"] });
