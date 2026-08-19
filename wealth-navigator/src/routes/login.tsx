@@ -22,6 +22,16 @@ const emailOnlySchema = z.object({
   email: z.string().trim().email("Email no válido").max(255),
 });
 
+const newPasswordSchema = z
+  .object({
+    newPassword: z.string().min(6, "Mínimo 6 caracteres").max(72),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
 function LoginPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
@@ -30,13 +40,26 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) {
+    if (!loading && session && mode !== "reset") {
       navigate({ to: "/" });
     }
-  }, [loading, session, navigate]);
+  }, [loading, session, navigate, mode]);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -95,6 +118,27 @@ function LoginPage() {
     setMode("signin");
   }
 
+  async function handleResetSubmit(e: FormEvent) {
+    e.preventDefault();
+    const parsed = newPasswordSchema.safeParse({ newPassword, confirmPassword });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: parsed.data.newPassword });
+      if (error) throw error;
+      toast.success("Contraseña actualizada.");
+      navigate({ to: "/" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error inesperado";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
@@ -119,7 +163,37 @@ function LoginPage() {
         </div>
 
         <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-          {mode === "forgot" ? (
+          {mode === "reset" ? (
+            <form onSubmit={handleResetSubmit} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-password">Nueva contraseña</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm-password">Confirmar contraseña</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "..." : "Guardar nueva contraseña"}
+              </Button>
+            </form>
+          ) : mode === "forgot" ? (
             <form onSubmit={handleForgotSubmit} className="space-y-3">
               <p className="text-[12.5px] text-muted-foreground">
                 Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
