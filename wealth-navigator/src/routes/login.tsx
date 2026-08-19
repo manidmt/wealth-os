@@ -18,11 +18,15 @@ const credSchema = z.object({
   password: z.string().min(6, "Mínimo 6 caracteres").max(72),
 });
 
+const emailOnlySchema = z.object({
+  email: z.string().trim().email("Email no válido").max(255),
+});
+
 function LoginPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -70,6 +74,27 @@ function LoginPage() {
     }
   }
 
+  async function handleForgotSubmit(e: FormEvent) {
+    e.preventDefault();
+    const parsed = emailOnlySchema.safeParse({ email });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+    toast.success(
+      "Si existe una cuenta con ese email, te hemos enviado un enlace para restablecer la contraseña.",
+    );
+    setMode("signin");
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
@@ -82,62 +107,109 @@ function LoginPage() {
               Wealth OS
             </h1>
             <p className="mt-1 text-[12px] uppercase tracking-[0.16em] text-muted-foreground">
-              {mode === "signin" ? "Inicia sesión" : "Crea tu cuenta"}
+              {mode === "signin"
+                ? "Inicia sesión"
+                : mode === "signup"
+                  ? "Crea tu cuenta"
+                  : mode === "forgot"
+                    ? "Recupera tu contraseña"
+                    : "Nueva contraseña"}
             </p>
           </div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {mode === "signup" && (
+          {mode === "forgot" ? (
+            <form onSubmit={handleForgotSubmit} className="space-y-3">
+              <p className="text-[12.5px] text-muted-foreground">
+                Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
+              </p>
               <div className="space-y-1.5">
-                <Label htmlFor="name">Nombre</Label>
+                <Label htmlFor="forgot-email">Email</Label>
                 <Input
-                  id="name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Tu nombre"
-                  maxLength={80}
+                  id="forgot-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "..." : mode === "signin" ? "Entrar" : "Crear cuenta"}
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "..." : "Enviar enlace"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="w-full text-center text-[12.5px] text-muted-foreground transition hover:text-foreground"
+              >
+                Volver a iniciar sesión
+              </button>
+            </form>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                {mode === "signup" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name">Nombre</Label>
+                    <Input
+                      id="name"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Tu nombre"
+                      maxLength={80}
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? "..." : mode === "signin" ? "Entrar" : "Crear cuenta"}
+                </Button>
+              </form>
 
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="mt-4 w-full text-center text-[12.5px] text-muted-foreground transition hover:text-foreground"
-          >
-            {mode === "signin"
-              ? "¿No tienes cuenta? Regístrate"
-              : "¿Ya tienes cuenta? Inicia sesión"}
-          </button>
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={() => setMode("forgot")}
+                  className="mt-3 w-full text-center text-[12.5px] text-muted-foreground transition hover:text-foreground"
+                >
+                  ¿Has olvidado tu contraseña?
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                className="mt-4 w-full text-center text-[12.5px] text-muted-foreground transition hover:text-foreground"
+              >
+                {mode === "signin"
+                  ? "¿No tienes cuenta? Regístrate"
+                  : "¿Ya tienes cuenta? Inicia sesión"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
