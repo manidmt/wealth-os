@@ -51,7 +51,7 @@ Expected: `project_id = "pqfixpcbupdslrdfealq"`
 npx supabase login
 ```
 
-Se abrirá el navegador. Completa el login con tu cuenta de supabase.com. Cuando termine, la terminal mostrará "Logged in as manidmt5@gmail.com" o similar.
+Se abrirá el navegador. Completa el login con tu cuenta de supabase.com. Cuando termine, la terminal mostrará "Logged in as <TU_EMAIL>" o similar.
 
 - [ ] **Step 3: Vincular CLI al proyecto**
 

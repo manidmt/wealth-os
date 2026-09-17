@@ -1,6 +1,6 @@
 /**
  * Seed de estrategias del Excel ESTATEGIA_PERSONAL.xlsx + histórico para ATH y 200WMA.
- * Uso: SUPABASE_URL=... SERVICE_ROLE_KEY=... USER_EMAIL=manidmt5@gmail.com npx tsx scripts/seed-strategies.ts
+ * Uso: SUPABASE_URL=... SERVICE_ROLE_KEY=... USER_EMAIL=<TU_EMAIL> npx tsx scripts/seed-strategies.ts
  */
 import { createClient } from "@supabase/supabase-js";
 import type { MultiplierRules } from "../supabase/functions/_shared/strategy-engine";

@@ -184,10 +184,10 @@ En el nuevo proyecto de Supabase, ir a **Authentication → Users → Invite use
 **Alternativa más rápida**: En el SQL Editor del nuevo proyecto:
 ```sql
 -- Esto solo funciona si Email provider está habilitado con confirmación desactivada.
--- Si no, usar el dashboard de Auth → Add user manualmente con email manidmt5@gmail.com
+-- Si no, usar el dashboard de Auth → Add user manualmente con email <TU_EMAIL>
 ```
 
-Ir a **Authentication → Users → Add user** en el dashboard, introducir `manidmt5@gmail.com` y la contraseña, y guardar. El trigger creará automáticamente el perfil y el rol.
+Ir a **Authentication → Users → Add user** en el dashboard, introducir `<TU_EMAIL>` y la contraseña, y guardar. El trigger creará automáticamente el perfil y el rol.
 
 ---
 
@@ -330,19 +330,19 @@ En el dashboard de Supabase del nuevo proyecto → **Settings → API**:
 - `anon public` → valor para `NEW_KEY`
 
 Credenciales del viejo (ya en `.env`):
-- `OLD_URL=https://jywkkbmurlohupuyakmu.supabase.co`
-- `OLD_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5d2trYm11cmxvaHVwdXlha211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjkyMDQsImV4cCI6MjA5NDM0NTIwNH0.p6cWYG8MAsI1Xc2jfEkkB8hPVsBMMiOcU2J_yk2Asns`
+- `OLD_URL=<REDACTADO — ver .env local>`
+- `OLD_KEY=<REDACTADO — ver .env local>`
 
 - [ ] **Step 2: Correr el script**
 
 ```bash
 cd /home/manidmt/.openclaw/workspace/projects/wealth-os/wealth-navigator
 
-OLD_URL="https://jywkkbmurlohupuyakmu.supabase.co" \
-OLD_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5d2trYm11cmxvaHVwdXlha211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjkyMDQsImV4cCI6MjA5NDM0NTIwNH0.p6cWYG8MAsI1Xc2jfEkkB8hPVsBMMiOcU2J_yk2Asns" \
+OLD_URL="<PEGAR_AQUI>" \
+OLD_KEY="<PEGAR_AQUI>" \
 NEW_URL="<PEGAR_AQUI>" \
 NEW_KEY="<PEGAR_AQUI>" \
-EMAIL="manidmt5@gmail.com" \
+EMAIL="<TU_EMAIL>" \
 PASS="<TU_PASSWORD>" \
 npx tsx scripts/migrate-supabase.ts
 ```
@@ -415,7 +415,7 @@ Expected: `HTTP/1.1 200`
 - [ ] **Step 3: Verificar login y datos en producción**
 
 Abrir `https://wealthos.manidmt.es` en el navegador:
-1. Login con `manidmt5@gmail.com`
+1. Login con `<TU_EMAIL>`
 2. Verificar que aparecen los movimientos históricos
 3. Verificar que el portfolio tiene las posiciones correctas
 4. Verificar que el dashboard muestra el patrimonio correcto

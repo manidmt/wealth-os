@@ -26,7 +26,7 @@ Tablas **solo en nuevo proyecto** (no existen en el viejo):
 
 ## Constraint clave
 
-Solo se dispone de la **anon key** del proyecto viejo (no service_role). El script autentica como el usuario (`manidmt5@gmail.com`) para leer sus datos vía RLS. Esto es suficiente porque es una app monousuario y todas las tablas tienen RLS `user_id = auth.uid()`.
+Solo se dispone de la **anon key** del proyecto viejo (no service_role). El script autentica como el usuario (`<TU_EMAIL>`) para leer sus datos vía RLS. Esto es suficiente porque es una app monousuario y todas las tablas tienen RLS `user_id = auth.uid()`.
 
 El **user_id UUID cambia** entre proyectos (Supabase genera UUIDs distintos). El script detecta ambos UUIDs y sustituye en todos los registros.
 

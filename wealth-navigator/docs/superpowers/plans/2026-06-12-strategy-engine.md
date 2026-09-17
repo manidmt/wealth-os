@@ -954,7 +954,7 @@ El script usa la SERVICE_ROLE key (env) y el email del usuario para resolver `us
 ```typescript
 /**
  * Seed de estrategias del Excel ESTATEGIA_PERSONAL.xlsx + histórico para ATH y 200WMA.
- * Uso: SUPABASE_URL=... SERVICE_ROLE_KEY=... USER_EMAIL=manidmt5@gmail.com npx tsx scripts/seed-strategies.ts
+ * Uso: SUPABASE_URL=... SERVICE_ROLE_KEY=... USER_EMAIL=<TU_EMAIL> npx tsx scripts/seed-strategies.ts
  */
 import { createClient } from "@supabase/supabase-js";
 
@@ -1151,7 +1151,7 @@ main().catch((e) => { console.error(e); process.exit(1); });
 ```bash
 npm install -D tsx
 URL=$(grep VITE_SUPABASE_URL .env | cut -d= -f2 | tr -d '"')
-SUPABASE_URL=$URL SERVICE_ROLE_KEY=<key> USER_EMAIL=manidmt5@gmail.com npx tsx scripts/seed-strategies.ts
+SUPABASE_URL=$URL SERVICE_ROLE_KEY=<key> USER_EMAIL=<TU_EMAIL> npx tsx scripts/seed-strategies.ts
 ```
 
 Expected: `btc: N semanas` (N > 500), `msci_ath=...`, `gold_ath=...`, 5 líneas `created: ...`.
@@ -1770,7 +1770,7 @@ Deno.serve(async (req) => {
 ```bash
 npx supabase functions deploy routine-summary
 URL=$(grep VITE_SUPABASE_URL .env | cut -d= -f2 | tr -d '"')
-curl -s "$URL/functions/v1/routine-summary?user_email=manidmt5@gmail.com" \
+curl -s "$URL/functions/v1/routine-summary?user_email=<TU_EMAIL>" \
   -H "Authorization: Bearer $SERVICE_ROLE_KEY" | python3 -m json.tool
 ```
 
@@ -1793,7 +1793,7 @@ git commit -m "feat: routine-summary edge function for Telegram digest"
 
 ```
 Schedule: 0 9 28 * *
-Prompt: Haz GET a https://pqfixpcbupdslrdfealq.supabase.co/functions/v1/routine-summary?user_email=manidmt5@gmail.com
+Prompt: Haz GET a https://pqfixpcbupdslrdfealq.supabase.co/functions/v1/routine-summary?user_email=<TU_EMAIL>
 con header "Authorization: Bearer $SERVICE_ROLE_KEY" (está en el entorno del gateway como WEALTHOS_SERVICE_KEY).
 Formatea el JSON como resumen de la rutina mensual de inversión: por estrategia "nombre: base × multi = efectiva €",
 pólvora disponible, señales caducadas que hay que actualizar a mano, y 🚨 si fired no está vacío.
