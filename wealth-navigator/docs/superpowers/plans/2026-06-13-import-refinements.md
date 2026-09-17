@@ -276,7 +276,7 @@ git commit -m "feat: create exclusion rule from edit sheet; manage rules in sett
 - [ ] **Step 2: Sembrar regla Indexa** (service role; user_id del usuario):
 ```bash
 URL=...; SRK=...  # via npx supabase projects api-keys
-curl -X POST "$URL/rest/v1/movement_exclusion_rules" -H "apikey: $SRK" -H "Authorization: Bearer $SRK" -H "Content-Type: application/json" -d '{"user_id":"5acfa18c-c6ba-499a-88fe-53d49998673a","match_text":"INDEXA"}'
+curl -X POST "$URL/rest/v1/movement_exclusion_rules" -H "apikey: $SRK" -H "Authorization: Bearer $SRK" -H "Content-Type: application/json" -d '{"user_id":"<TU_USER_ID>","match_text":"INDEXA"}'
 ```
 - [ ] **Step 3:** Borrar los 96 importados (external_id not null) + reset `last_synced_at` de BBVA + re-sync vía bank-sync-all.
 - [ ] **Step 4: Verificar**: Bus 28/28.73 y Gym 23/22.99 marcados como duplicado (excluded+duplicate_of); la retirada de 50€ `excluded`; adeudos Indexa `excluded`. Distribución de categorías y conteo de excluidos.
