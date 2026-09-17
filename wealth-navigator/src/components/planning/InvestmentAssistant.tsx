@@ -18,7 +18,7 @@ export function InvestmentAssistant({
   context: PlanningContext;
   hasPlans: boolean;
 }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const month = context.month;
   const serialized = serializePlanningContext(context);
 
@@ -50,7 +50,7 @@ export function InvestmentAssistant({
   }, [messages]);
 
   function generate() {
-    if (!user?.id) return;
+    if (!user?.id || !session?.access_token) return;
     setError("");
     setDraft("");
     setStreaming(true);
@@ -58,6 +58,7 @@ export function InvestmentAssistant({
     closeRef.current?.();
     closeRef.current = openAgentStream(
       user.id,
+      session.access_token,
       buildBriefingPrompt(serialized, month),
       [],
       {
@@ -80,7 +81,7 @@ export function InvestmentAssistant({
 
   function send(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || busy || !user?.id) return;
+    if (!trimmed || busy || !user?.id || !session?.access_token) return;
     const userMsg: Msg = { id: crypto.randomUUID(), role: "user", content: trimmed };
     const pendingId = crypto.randomUUID();
     setMessages((m) => [
@@ -97,6 +98,7 @@ export function InvestmentAssistant({
     let acc = "";
     chatCloseRef.current = openAgentStream(
       user.id,
+      session.access_token,
       trimmed,
       history,
       {

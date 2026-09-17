@@ -9,7 +9,7 @@ const WS_BASE_URL =
 type Msg = { role: "user" | "system"; content: string; id: string };
 
 export function AgentChatWidget() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -20,8 +20,10 @@ export function AgentChatWidget() {
   const seededRef = useRef(false);
 
   useEffect(() => {
-    if (!open || !user?.id) return;
-    const ws = new WebSocket(`${WS_BASE_URL}/ws/${user.id}`);
+    if (!open || !user?.id || !session?.access_token) return;
+    const ws = new WebSocket(
+      `${WS_BASE_URL}/ws/${user.id}?token=${encodeURIComponent(session.access_token)}`,
+    );
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
@@ -72,7 +74,7 @@ export function AgentChatWidget() {
       ws.close();
       wsRef.current = null;
     };
-  }, [open, user?.id]);
+  }, [open, user?.id, session?.access_token]);
 
   useEffect(() => {
     if (open && !seededRef.current && persisted && persisted.length > 0) {

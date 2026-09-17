@@ -25,7 +25,7 @@ export function AgentSuggestionPanel({
   actuals: BudgetMap;
   onApply: (next: BudgetMap) => void;
 }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [text, setText] = useState("");
   const [status, setStatus] = useState<"idle" | "streaming" | "error">("idle");
   const [error, setError] = useState("");
@@ -41,14 +41,14 @@ export function AgentSuggestionPanel({
   const visibleText = text.replace(/```json[\s\S]*?```/i, "").trim();
 
   function ask() {
-    if (!user?.id) return;
+    if (!user?.id || !session?.access_token) return;
     setText("");
     setError("");
     setAgentProposal(null);
     setStatus("streaming");
     const prompt = buildBudgetSuggestionPrompt({ month, incomes, savingsGoal, budgets, actuals });
     let acc = "";
-    closeRef.current = openAgentStream(user.id, prompt, [], {
+    closeRef.current = openAgentStream(user.id, session.access_token, prompt, [], {
       onToken: (t) => {
         acc += t;
         setText(acc);

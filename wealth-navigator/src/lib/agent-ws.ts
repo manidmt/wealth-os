@@ -15,13 +15,14 @@ export type AgentMessage = { role: "user" | "assistant"; content: string };
  */
 export function openAgentStream(
   userId: string,
+  token: string,
   message: string,
   history: AgentMessage[],
   handlers: AgentHandlers,
   context?: string,
 ): () => void {
   let settled = false;
-  const ws = new WebSocket(`${WS_BASE_URL}/ws/${userId}`);
+  const ws = new WebSocket(`${WS_BASE_URL}/ws/${userId}?token=${encodeURIComponent(token)}`);
 
   const timeout = setTimeout(() => {
     if (!settled && ws.readyState !== WebSocket.OPEN) {

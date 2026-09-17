@@ -26,7 +26,7 @@ const noop = { onToken: () => {}, onDone: () => {}, onError: () => {} };
 
 describe("openAgentStream payload", () => {
   it("includes context when provided", () => {
-    openAgentStream("u1", "hola", [], noop, "CTX-BLOCK");
+    openAgentStream("u1", "tok1", "hola", [], noop, "CTX-BLOCK");
     FakeWS.last!.onopen!();
     const payload = JSON.parse(FakeWS.last!.sent[0]);
     expect(payload.message).toBe("hola");
@@ -34,10 +34,15 @@ describe("openAgentStream payload", () => {
   });
 
   it("omits context when not provided", () => {
-    openAgentStream("u1", "hola", [], noop);
+    openAgentStream("u1", "tok1", "hola", [], noop);
     FakeWS.last!.onopen!();
     const payload = JSON.parse(FakeWS.last!.sent[0]);
     expect(payload.message).toBe("hola");
     expect("context" in payload).toBe(false);
+  });
+
+  it("puts the token in the WS URL", () => {
+    openAgentStream("u1", "tok1", "hola", [], noop);
+    expect(FakeWS.last!.url).toContain("/ws/u1?token=tok1");
   });
 });

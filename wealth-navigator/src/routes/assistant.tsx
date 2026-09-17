@@ -38,7 +38,7 @@ type Msg = {
 };
 
 function AssistantPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const { q } = Route.useSearch();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -54,8 +54,10 @@ function AssistantPage() {
 
   // WebSocket connection
   useEffect(() => {
-    if (!user?.id) return;
-    const ws = new WebSocket(`${AGENT_WS_BASE_URL}/ws/${user.id}`);
+    if (!user?.id || !session?.access_token) return;
+    const ws = new WebSocket(
+      `${AGENT_WS_BASE_URL}/ws/${user.id}?token=${encodeURIComponent(session.access_token)}`,
+    );
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
@@ -116,7 +118,7 @@ function AssistantPage() {
       ws.close();
       wsRef.current = null;
     };
-  }, [user?.id]);
+  }, [user?.id, session?.access_token]);
 
   // Seed persisted history once
   useEffect(() => {
