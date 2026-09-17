@@ -1,168 +1,72 @@
-# Financial Agent API
+# wealth-agent
 
-Backend de un agente financiero personal con FastAPI y WebSockets. Analiza gastos, inversiones y patrimonio neto a partir de datos reales del usuario almacenados en Supabase.
+FastAPI chat agent for Wealth OS: answers questions about a user's movements, portfolio and net worth by calling tools backed by Supabase, streamed over a WebSocket.
 
----
-
-## Requisitos
-
-- Python 3.10+
-- Conda o venv
-- Cuenta en [OpenAI](https://platform.openai.com/) con acceso a `gpt-4o`
-- Proyecto en [Supabase](https://supabase.com/) con las tablas `movements` y `portfolio`
-
----
-
-## Instalación
+## Setup
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/financial-agent.git
-cd financial-agent
-
-# 2. Crear entorno e instalar dependencias
-conda create -n financial-agent python=3.11
-conda activate financial-agent
 pip install -r requirements.txt
-
-# 3. Configurar variables de entorno
-cp .env.example .env
+cp .env.example .env   # fill in your own values
+uvicorn app.main:app --reload --port 8001
 ```
 
-Edita el `.env` con tus credenciales:
+Required env vars (see `.env.example`):
+- `OPENAI_API_KEY`, `MODEL` — the LLM used for the agent loop.
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY` — same Supabase project as `wealth-navigator`. The agent authenticates each connection with the caller's own Supabase session token, so all reads/writes run under that user's RLS policies — it never holds a service_role key.
 
-```
-OPENAI_API_KEY=sk-...
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_KEY=your-anon-key
-MODEL=gpt-4o
-```
+Check it's up: `curl http://localhost:8001/health` → `{"status":"ok"}`.
 
----
+## WebSocket: `/ws/{user_id}`
 
-## Arrancar el servidor
+The client must open the connection with its Supabase access token as a WebSocket subprotocol (not a query param, so it never ends up in access logs):
 
-```bash
-conda activate financial-agent
-uvicorn app.main:app --reload --port 8000
+```javascript
+const ws = new WebSocket(`ws://localhost:8001/ws/${userId}`, ["bearer", accessToken]);
 ```
 
-Verifica que funciona:
+The server validates the token against Supabase Auth and closes the connection with `{"error": "No autorizado"}` if it doesn't belong to `user_id`.
 
-```bash
-curl http://localhost:8000/health
-# {"status":"ok"}
-```
-
----
-
-## Estructura del proyecto
-
-```
-financial-agent/
-├── .env.example
-├── requirements.txt
-├── README.md
-└── app/
-    ├── main.py                  # Punto de entrada FastAPI
-    ├── config.py                # Variables de entorno
-    ├── models/
-    │   └── schemas.py           # Modelos Pydantic
-    ├── routers/
-    │   └── chat.py              # WebSocket /ws/{user_id}
-    ├── services/
-    │   ├── data_service.py      # Carga de datos desde Supabase
-    │   └── agent_service.py     # Loop agéntico + streaming
-    └── tools/
-        └── financial_tools.py   # Tools, schemas y dispatcher
-```
-
----
-
-## Conexión WebSocket
-
-**Endpoint:** `ws://localhost:8000/ws/{user_id}`
-
-**Mensaje del cliente:**
+**Client message:**
 
 ```json
 {
-  "message": "¿Cuánto gasté este mes?",
-  "history": [
-    { "role": "user", "content": "mensaje anterior" },
-    { "role": "assistant", "content": "respuesta anterior" }
-  ]
+  "message": "How much did I spend this month?",
+  "history": [{ "role": "user", "content": "..." }],
+  "remember": true
 }
 ```
 
-**Respuesta del servidor (streaming):**
+**Server response (streamed):**
 
 ```json
-{"token": "Este"}
-{"token": " mes"}
-{"token": " has gastado..."}
+{"token": "This"}
+{"token": " month"}
 {"done": true}
 ```
 
-**Ejemplo en JavaScript:**
+## Structure
 
-```javascript
-const ws = new WebSocket("ws://localhost:8000/ws/USER_ID");
-
-let fullResponse = "";
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.token) fullResponse += data.token;
-  if (data.done) console.log(fullResponse);
-  if (data.error) console.error(data.error);
-};
-
-ws.send(
-  JSON.stringify({
-    message: "¿Cuánto gasté este mes?",
-    history: [],
-  }),
-);
+```
+app/
+├── main.py                  # FastAPI entrypoint
+├── config.py                # Env vars
+├── models/schemas.py        # Pydantic models
+├── routers/chat.py          # WebSocket /ws/{user_id} + auth
+├── services/
+│   ├── data_service.py      # RLS-scoped Supabase client + data loading
+│   ├── agent_service.py     # Agent loop + streaming
+│   └── memory_service.py    # Cross-session memory (agent_memory/agent_messages)
+└── tools/financial_tools.py # Tool schemas + dispatcher
 ```
 
----
+## Tools available to the agent
 
-## Tablas Supabase
-
-**movements**
-
-| columna     | tipo    |
-| ----------- | ------- |
-| user_id     | uuid    |
-| date        | date    |
-| type        | text    |
-| category    | text    |
-| description | text    |
-| amount      | numeric |
-| currency    | text    |
-
-**portfolio**
-
-| columna      | tipo    |
-| ------------ | ------- |
-| user_id      | uuid    |
-| assetName    | text    |
-| ticker       | text    |
-| quantity     | numeric |
-| avgCost      | numeric |
-| currentPrice | numeric |
-
----
-
-## Tools disponibles
-
-| Tool                       | Descripción                 |
-| -------------------------- | --------------------------- |
-| `get_month_spend`          | Gasto total de un mes       |
-| `get_top_categories`       | Top categorías por gasto    |
-| `get_month_comparison`     | Comparación entre dos meses |
-| `get_net_worth_summary`    | Patrimonio neto total       |
-| `get_portfolio_summary`    | Desglose del portfolio      |
-| `get_category_trend`       | Evolución de una categoría  |
-| `get_live_savings_summary` | Tasa de ahorro mensual      |
+| Tool | Description |
+| --- | --- |
+| `get_month_spend` | Total spend for a month |
+| `get_top_categories` | Top spending categories |
+| `get_month_comparison` | Comparison between two months |
+| `get_net_worth_summary` | Total net worth |
+| `get_portfolio_summary` | Portfolio breakdown, P&L, weights |
+| `get_category_trend` | A category's trend over time |
+| `get_live_savings_summary` | Monthly savings rate |

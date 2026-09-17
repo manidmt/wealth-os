@@ -1,8 +1,4 @@
 .env
-app/__pycache__/config.cpython-310.pyc
-app/__pycache__/main.cpython-310.pyc
-app/services/__pycache__/agent_service.cpython-310.pyc
-app/services/__pycache__/data_service.cpython-310.pyc
-app/tools/__pycache__/financial_tools.cpython-310.pyc
-app/models/__pycache__/schemas.cpython-310.pyc
-app/routers/__pycache__/chat.cpython-310.pyc
+__pycache__/
+*.pyc
+.pytest_cache/
