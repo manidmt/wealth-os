@@ -22,7 +22,8 @@ export function openAgentStream(
   context?: string,
 ): () => void {
   let settled = false;
-  const ws = new WebSocket(`${WS_BASE_URL}/ws/${userId}?token=${encodeURIComponent(token)}`);
+  // El token va como subprotocolo, no como query param, para que no acabe en logs.
+  const ws = new WebSocket(`${WS_BASE_URL}/ws/${userId}`, ["bearer", token]);
 
   const timeout = setTimeout(() => {
     if (!settled && ws.readyState !== WebSocket.OPEN) {

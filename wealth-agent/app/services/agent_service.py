@@ -60,11 +60,11 @@ def build_system_prompt(df_movements_recent):
             """
 
 
-async def run_agent_stream(user_id, message, history, context=None, remember=False):
-    _, df_movements_recent, df_portfolio = load_user_data(user_id)
+async def run_agent_stream(user_id, access_token, message, history, context=None, remember=False):
+    _, df_movements_recent, df_portfolio = load_user_data(user_id, access_token)
     system_prompt = build_system_prompt(df_movements_recent)
 
-    supabase = get_supabase_client()
+    supabase = get_supabase_client(access_token)
     mem = load_memory(supabase, user_id)
 
     system_messages = [{"role": "system", "content": system_prompt}]

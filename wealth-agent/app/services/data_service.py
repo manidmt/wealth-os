@@ -1,11 +1,16 @@
 import pandas as pd
 from datetime import timedelta
 from supabase import create_client
-from app.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+from app.config import SUPABASE_URL, SUPABASE_ANON_KEY
 
 
-def get_supabase_client():
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+def get_supabase_client(access_token: str | None = None):
+    """Cliente Supabase con la anon key. Si se pasa el access_token del usuario,
+    las queries corren con su sesión y quedan sujetas a RLS (auth.uid() = user_id)."""
+    client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    if access_token:
+        client.postgrest.auth(access_token)
+    return client
 
 
 def load_table(supabase, table_name, user_id):
@@ -30,8 +35,8 @@ def load_table(supabase, table_name, user_id):
     return pd.DataFrame(all_rows)
 
 
-def load_user_data(user_id):
-    supabase = get_supabase_client()
+def load_user_data(user_id, access_token):
+    supabase = get_supabase_client(access_token)
     df_movements = load_table(supabase, "movements", user_id)
     df_portfolio = load_table(supabase, "portfolio_positions", user_id)
     # Usuario sin movimientos: load_table devuelve un DataFrame vacío sin columnas.

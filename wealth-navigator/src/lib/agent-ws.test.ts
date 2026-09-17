@@ -4,13 +4,18 @@ import { openAgentStream } from "./agent-ws";
 class FakeWS {
   static last: FakeWS | null = null;
   url: string;
+  protocols: string | string[] | undefined;
   readyState = 1;
   onopen: (() => void) | null = null;
   onmessage: ((ev: { data: string }) => void) | null = null;
   onerror: (() => void) | null = null;
   onclose: (() => void) | null = null;
   sent: string[] = [];
-  constructor(url: string) { this.url = url; FakeWS.last = this; }
+  constructor(url: string, protocols?: string | string[]) {
+    this.url = url;
+    this.protocols = protocols;
+    FakeWS.last = this;
+  }
   send(data: string) { this.sent.push(data); }
   close() {}
 }
@@ -41,8 +46,10 @@ describe("openAgentStream payload", () => {
     expect("context" in payload).toBe(false);
   });
 
-  it("puts the token in the WS URL", () => {
+  it("sends the token as a subprotocol, not in the URL", () => {
     openAgentStream("u1", "tok1", "hola", [], noop);
-    expect(FakeWS.last!.url).toContain("/ws/u1?token=tok1");
+    expect(FakeWS.last!.url.endsWith("/ws/u1")).toBe(true);
+    expect(FakeWS.last!.url).not.toContain("tok1");
+    expect(FakeWS.last!.protocols).toEqual(["bearer", "tok1"]);
   });
 });

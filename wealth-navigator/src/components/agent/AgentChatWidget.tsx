@@ -21,9 +21,7 @@ export function AgentChatWidget() {
 
   useEffect(() => {
     if (!open || !user?.id || !session?.access_token) return;
-    const ws = new WebSocket(
-      `${WS_BASE_URL}/ws/${user.id}?token=${encodeURIComponent(session.access_token)}`,
-    );
+    const ws = new WebSocket(`${WS_BASE_URL}/ws/${user.id}`, ["bearer", session.access_token]);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);

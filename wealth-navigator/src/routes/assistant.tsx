@@ -55,9 +55,7 @@ function AssistantPage() {
   // WebSocket connection
   useEffect(() => {
     if (!user?.id || !session?.access_token) return;
-    const ws = new WebSocket(
-      `${AGENT_WS_BASE_URL}/ws/${user.id}?token=${encodeURIComponent(session.access_token)}`,
-    );
+    const ws = new WebSocket(`${AGENT_WS_BASE_URL}/ws/${user.id}`, ["bearer", session.access_token]);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);

@@ -20,9 +20,13 @@ def _authenticated_user_id(token: str | None) -> str | None:
 
 @router.websocket("/ws/{user_id}")
 async def websocket_chat(websocket: WebSocket, user_id: str):
-    await websocket.accept()
+    # El token viaja como subprotocolo (["bearer", <jwt>]), no como query param,
+    # para que no acabe en logs de acceso de nginx/Cloudflare.
+    requested = websocket.scope.get("subprotocols") or []
+    auth_token = requested[1] if len(requested) > 1 and requested[0] == "bearer" else None
 
-    auth_token = websocket.query_params.get("token")
+    await websocket.accept(subprotocol="bearer" if auth_token else None)
+
     real_user_id = _authenticated_user_id(auth_token)
     if real_user_id is None or real_user_id != user_id:
         await websocket.send_text(json.dumps({"error": "No autorizado"}))
@@ -43,7 +47,7 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                 await websocket.send_text(json.dumps({"error": "Mensaje vacío"}))
                 continue
 
-            async for token in run_agent_stream(user_id, message, history, context, remember):
+            async for token in run_agent_stream(user_id, auth_token, message, history, context, remember):
                 await websocket.send_text(json.dumps({"token": token}))
 
             await websocket.send_text(json.dumps({"done": True}))
