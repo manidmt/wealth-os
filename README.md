@@ -4,7 +4,6 @@ A personal finance and investment tracking app: expense/income tracking, portfol
 
 - `wealth-navigator/` — frontend (Vite + React + TanStack + Supabase). Originally sourced from `manidmt/wealth-navigator`.
 - `wealth-agent/` — FastAPI chat assistant over the app's financial data (fork of `LCabelloC/wealth-agent`).
-- `docs/` — implementation plans, design specs, and reports.
 
 ## Stack
 - **Frontend:** Vite, React, TanStack (Router/Query), Radix UI, Tailwind CSS, Supabase (Postgres, Auth, Edge Functions).
