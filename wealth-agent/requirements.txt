@@ -5,3 +5,4 @@ openai==2.44.0
 supabase==2.5.0
 pandas==2.2.2
 python-dotenv==1.0.1
+

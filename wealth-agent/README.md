@@ -44,19 +44,125 @@ The server validates the token against Supabase Auth and closes the connection w
 {"done": true}
 ```
 
+## MCP server
+
+`app/mcp_server.py` exposes the same financial data to local AI assistants over
+[MCP](https://modelcontextprotocol.io) (stdio — no port is opened). It is a separate
+entrypoint from the FastAPI app and has its own dependency set, because `mcp` requires
+`uvicorn>=0.31.1` while the agent is pinned to `0.30.1`:
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements-mcp-dev.txt   # or requirements-mcp.txt without pytest
+.venv/bin/python -m app.mcp_server                  # stdio: the client spawns it
+```
+
+### Read-only by construction
+
+Queries do not run as the owner. A dedicated Supabase account reads the data, and the
+`data_readers` table plus SELECT-only RLS policies (migration
+`20260922120000_mcp_data_readers.sql`) are what allow it. The reader has no insert,
+update or delete policy, so Postgres — not application code — rejects every write.
+Revoke access by deleting the row:
+
+```sql
+delete from public.data_readers where reader_id = '<reader uid>';
+```
+
+`scripts/verify_reader_readonly.py` checks the lock against the live project: reads
+work, only the owner's rows are visible, and insert/update/delete have no effect.
+
+```bash
+READER_EMAIL=... READER_PASSWORD=... OWNER_USER_ID=... python scripts/verify_reader_readonly.py
+```
+
+### Credentials
+
+`~/.config/wealth-mcp/env`, `chmod 600` (the loader refuses to start otherwise).
+Override the path with `WEALTH_MCP_ENV`.
+
+```
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_ANON_KEY=<anon key>
+READER_EMAIL=<reader account>
+READER_PASSWORD=<reader password>
+OWNER_USER_ID=<uuid of the user whose data is exposed>
+```
+
+Not the system keyring: the client may run as a lingering user service, and after a
+reboot the keyring stays locked until a graphical login. It would not protect anything
+either — a local assistant runs as the same Unix user. The protection is that the
+credential cannot write.
+
+### Tools
+
+Seven wrap `financial_tools`; `list_movements` is the only one that returns rows, and
+its limits live in the function rather than in the tool description: the range caps at
+366 days, `limit` caps at 200 (over-asking is clamped, not rejected), and the response
+carries `matchedCount` and `truncated`. Fields are whitelisted — no `id`, `user_id` or
+`created_at` reaches the model — and `description_untrusted` is stripped of IBANs, card
+numbers (including masked forms), URLs and invisible characters, then truncated to 80
+characters. Bank-supplied text is data, never instructions; no regex makes it
+trustworthy, which is why nothing here can write.
+
+| Tool | Arguments |
+| --- | --- |
+| `get_month_spend` | `month` |
+| `get_top_categories` | `month`, `limit` |
+| `get_month_comparison` | `current_month`, `previous_month` |
+| `get_category_trend` | `category`, `months` |
+| `get_savings_summary` | `month` |
+| `get_net_worth_summary` | — |
+| `get_portfolio_summary` | — |
+| `list_movements` | `start_date`, `end_date`, `category`, `type`, `min_amount`, `limit` |
+
+Data is cached in memory for 5 minutes (`CACHE_TTL_SECONDS`). Every call appends one
+JSON line to `~/.local/state/wealth-mcp/audit.log` (`WEALTH_MCP_AUDIT_LOG` to move it)
+with the tool, its arguments and the row count — never amounts or descriptions, so the
+log is not a second copy of the data.
+
+Whatever a tool returns reaches whichever model the client uses. That is inherent to
+letting an assistant see the data; the limits above bound it, they do not remove it.
+
+### Registering it with a client
+
+```bash
+# OpenClaw
+openclaw mcp add wealth-os \
+  --command "$PWD/.venv/bin/python" --arg -m --arg app.mcp_server --cwd "$PWD"
+openclaw mcp probe wealth-os    # expect: 8 tools
+
+# Claude Code
+claude mcp add wealth-os -- "$PWD/.venv/bin/python" -m app.mcp_server
+```
+
+Poke at it by hand with `npx @modelcontextprotocol/inspector .venv/bin/python -m app.mcp_server`.
+
 ## Structure
 
 ```
 app/
 ├── main.py                  # FastAPI entrypoint
 ├── config.py                # Env vars
+├── mcp_config.py            # MCP reader credentials (~/.config/wealth-mcp/env)
+├── mcp_server.py            # MCP server (stdio): 8 read-only tools, cache, audit log
 ├── models/schemas.py        # Pydantic models
 ├── routers/chat.py          # WebSocket /ws/{user_id} + auth
 ├── services/
 │   ├── data_service.py      # RLS-scoped Supabase client + data loading
+│   ├── reader_client.py     # Read-only Supabase session for the MCP server
 │   ├── agent_service.py     # Agent loop + streaming
 │   └── memory_service.py    # Cross-session memory (agent_memory/agent_messages)
-└── tools/financial_tools.py # Tool schemas + dispatcher
+└── tools/
+    ├── financial_tools.py   # Tool schemas + dispatcher (FastAPI agent)
+    └── movement_tools.py    # list_movements + description sanitizer (MCP)
+```
+
+## Tests
+
+```bash
+.venv/bin/python -m pytest                                    # everything (69 tests)
+python -m pytest tests/test_data_service.py tests/test_financial_tools.py   # FastAPI agent only
 ```
 
 ## Tools available to the agent

@@ -1,0 +1,8 @@
+# Plantilla de ~/.config/wealth-mcp/env (chmod 600).
+# Credenciales de la cuenta lectora del servidor MCP: solo puede hacer SELECT
+# sobre las filas del dueño, según las políticas RLS de data_readers.
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_ANON_KEY="your-anon-key"
+READER_EMAIL="mcp-reader@example.com"
+READER_PASSWORD="the-reader-password"
+OWNER_USER_ID="uuid-del-usuario-cuyos-datos-se-exponen"
