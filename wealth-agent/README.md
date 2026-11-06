@@ -138,6 +138,21 @@ claude mcp add wealth-os -- "$PWD/.venv/bin/python" -m app.mcp_server
 
 Poke at it by hand with `npx @modelcontextprotocol/inspector .venv/bin/python -m app.mcp_server`.
 
+### After changing the code
+
+The client keeps the server process alive across turns, and Python holds the module it
+imported at startup, so edits are invisible until that process is gone. `openclaw mcp
+reload` is not enough — it only drops OpenClaw's cached runtimes, not the child process
+the Codex app-server is holding. Kill both and the next turn respawns them:
+
+```bash
+pkill -f "app\.mcp_server"
+pkill -f "codex\.js.*app-server"   # otherwise the next call hits a closed transport
+```
+
+Symptom when you forget: the model answers from a stale tool schema, and asking it to
+paste the raw JSON shows fields you just added are missing.
+
 ## Structure
 
 ```

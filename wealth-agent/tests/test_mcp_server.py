@@ -174,6 +174,79 @@ def test_tools_report_errors_instead_of_crashing(monkeypatch, server):
     assert "supabase caído" in result["error"]
 
 
+# --- Mes en curso ------------------------------------------------------------------
+
+
+@pytest.fixture
+def mid_june(monkeypatch):
+    """Hoy es el 6 de junio de 2026: el mes de los datos de prueba, a medias."""
+    import datetime as dt
+
+    monkeypatch.setattr(mcp_server, "_today", lambda: dt.date(2026, 6, 6))
+
+
+def test_month_spend_flags_the_current_month_as_partial(server, mid_june):
+    result = mcp_server.get_month_spend("2026-06")
+
+    assert result["partialMonth"] is True
+    assert result["daysElapsed"] == 6
+    assert result["daysInMonth"] == 30
+
+
+def test_month_spend_does_not_flag_a_finished_month(server, monkeypatch):
+    import datetime as dt
+
+    monkeypatch.setattr(mcp_server, "_today", lambda: dt.date(2026, 8, 1))
+
+    result = mcp_server.get_month_spend("2026-06")
+
+    assert result["partialMonth"] is False
+    assert "daysElapsed" not in result
+
+
+def test_savings_summary_warns_when_the_month_is_partial(server, mid_june):
+    result = mcp_server.get_savings_summary("2026-06")
+
+    assert result["partialMonth"] is True
+    assert "incompleto" in result["note"]
+
+
+def test_month_comparison_warns_about_comparing_a_partial_month(server, mid_june, monkeypatch):
+    two_months = pd.DataFrame(
+        [
+            {"date": "2026-05-15", "type": "expense", "category": "Comida", "amount": 500.0,
+             "description": "", "currency": "EUR"},
+            {"date": "2026-06-01", "type": "expense", "category": "Comida", "amount": 100.0,
+             "description": "", "currency": "EUR"},
+        ]
+    ).assign(date=lambda d: pd.to_datetime(d["date"]))
+    monkeypatch.setattr(mcp_server, "_load_frames", lambda: (two_months, pd.DataFrame()))
+    mcp_server.reset_cache()
+
+    result = mcp_server.get_month_comparison("2026-06", "2026-05")
+
+    assert result["partialMonth"] is True
+    assert "6 de 30" in result["note"]
+
+
+def test_partial_month_annotation_leaves_errors_untouched(server, mid_june):
+    result = mcp_server.get_month_spend("2026-01")
+
+    assert "error" in result
+    assert "partialMonth" not in result
+
+
+def test_default_month_is_also_annotated(server, mid_june):
+    result = mcp_server.get_month_spend()
+
+    assert result["month"] == "2026-06"
+    assert result["partialMonth"] is True
+
+
+def test_server_instructions_tell_the_model_what_to_do_with_partial_months():
+    assert "partialMonth" in mcp_server.server.instructions
+
+
 def test_every_registered_tool_is_marked_read_only():
     annotations = [tool.annotations for tool in mcp_server.server._tool_manager.list_tools()]
 

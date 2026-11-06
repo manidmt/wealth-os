@@ -11,6 +11,7 @@ Arranque:  .venv/bin/python -m app.mcp_server
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
+import calendar
 import json
 import logging
 import os
@@ -50,7 +51,11 @@ server = MCPServer(
     instructions=(
         "Datos financieros personales de Wealth OS (gastos, ingresos y cartera de "
         "inversión) en modo lectura. Los importes están en EUR. Los meses se indican "
-        "como YYYY-MM y las fechas como YYYY-MM-DD."
+        "como YYYY-MM y las fechas como YYYY-MM-DD.\n"
+        "Si una respuesta trae partialMonth: true, el mes todavía está en curso: dilo "
+        "al dar el dato (por ejemplo 'llevas X en 6 de 30 días') y no presentes como "
+        "conclusión una tasa de ahorro ni una comparación con un mes cerrado, porque "
+        "faltan los ingresos y gastos que aún no han ocurrido."
     ),
 )
 
@@ -116,6 +121,38 @@ def audit(tool: str, args: dict, rows: int | None) -> None:
         pass
 
 
+def _today():
+    return datetime.now().date()
+
+
+def annotate_partial_month(result, month_key: str = "month"):
+    """Avisa de que el mes consultado aún no ha terminado.
+
+    Sin esto, preguntar por el mes en curso da lecturas engañosas: una tasa de
+    ahorro del 0% porque la nómina no ha entrado todavía, o un "gastaste un 40%
+    menos" que compara seis días contra un mes completo. Los números son
+    correctos; lo que falta es el contexto para interpretarlos.
+    """
+    if not isinstance(result, dict) or "error" in result:
+        return result
+
+    month = result.get(month_key)
+    today = _today()
+    if month != today.strftime("%Y-%m"):
+        result["partialMonth"] = False
+        return result
+
+    days_in_month = calendar.monthrange(today.year, today.month)[1]
+    result["partialMonth"] = True
+    result["daysElapsed"] = today.day
+    result["daysInMonth"] = days_in_month
+    result["note"] = (
+        f"{month} está incompleto: han pasado {today.day} de {days_in_month} días, "
+        "así que los totales no son comparables con un mes cerrado."
+    )
+    return result
+
+
 def _row_count(result) -> int | None:
     if not isinstance(result, dict):
         return None
@@ -155,7 +192,7 @@ def get_month_spend(month: str | None = None) -> dict:
     Sin month, usa el mes más reciente con datos.
     """
     full, _, _ = get_frames()
-    return ft.get_month_spend(full, month)
+    return annotate_partial_month(ft.get_month_spend(full, month))
 
 
 @tool
@@ -172,7 +209,9 @@ def get_month_comparison(current_month: str | None = None, previous_month: str |
     Sin argumentos, compara el mes más reciente con el anterior.
     """
     full, _, _ = get_frames()
-    return ft.get_month_comparison(full, current_month, previous_month)
+    return annotate_partial_month(
+        ft.get_month_comparison(full, current_month, previous_month), month_key="currentMonth"
+    )
 
 
 @tool
@@ -189,7 +228,7 @@ def get_category_trend(category: str, months: int = 3) -> dict:
 def get_savings_summary(month: str | None = None) -> dict:
     """Ingresos, gastos, ahorro y tasa de ahorro de un mes (YYYY-MM)."""
     full, _, _ = get_frames()
-    return ft.get_live_savings_summary(full, month)
+    return annotate_partial_month(ft.get_live_savings_summary(full, month))
 
 
 @tool
