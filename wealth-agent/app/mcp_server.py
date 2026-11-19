@@ -233,7 +233,13 @@ def get_savings_summary(month: str | None = None) -> dict:
 
 @tool
 def get_net_worth_summary() -> dict:
-    """Patrimonio neto: valor y coste de la cartera, plusvalía y ahorro de los últimos 180 días."""
+    """Patrimonio neto: valor y coste de la cartera, plusvalía y ahorro de los últimos 180 días.
+
+    Metodología: cartera + (ingresos - gastos) de movimientos recientes. Puede no
+    coincidir con la cifra del dashboard de la app, que usa el saldo manual de
+    cuentas de efectivo cuando el usuario las tiene configuradas. Es una diferencia
+    de método, no un error — acláralo así si preguntan por qué difieren.
+    """
     _, recent, portfolio = get_frames()
     return ft.get_net_worth_summary(recent, portfolio)
 

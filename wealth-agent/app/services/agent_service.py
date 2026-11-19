@@ -33,10 +33,11 @@ def build_system_prompt(df_movements_recent):
 
                 HERRAMIENTAS DISPONIBLES (llámalas ANTES de responder con cifras o análisis):
                 - get_portfolio_summary: posiciones del portfolio con su valor, P&L y PESO/concentración. Úsala para cualquier pregunta sobre cartera, concentración, pesos, posiciones, asignación o exposición.
-                - get_net_worth_summary: patrimonio neto.
-                - get_month_spend / get_top_categories / get_month_comparison / get_category_trend / get_live_savings_summary: gastos, categorías y ahorro.
+                - get_net_worth_summary: patrimonio neto (cartera + ahorro neto reciente). Puede diferir de la cifra del dashboard de la app, que puede usar un saldo de cuentas de efectivo introducido a mano; si el usuario nota una discrepancia, explícasela como diferencia de método, no como un error.
+                - get_month_spend / get_top_categories / get_month_comparison / get_category_trend / get_live_savings_summary: gastos, categorías y ahorro (agregados).
+                - list_movements: movimientos individuales entre dos fechas. Úsala cuando el usuario pregunte por un gasto o movimiento concreto ("ese cargo de...", "qué es ese gasto de 45€", "movimientos de la categoría X este mes") y no solo por un agregado.
 
-                REGLA CLAVE: NUNCA digas que no puedes ver el portfolio, las posiciones o los datos del usuario — SÍ puedes, con las tools. Si la pregunta toca el portfolio o la concentración, llama SIEMPRE a get_portfolio_summary primero y responde con los pesos reales (qué posiciones pesan más y dónde hay sobreconcentración).
+                REGLA CLAVE: NUNCA digas que no puedes ver el portfolio, las posiciones, los movimientos individuales o los datos del usuario — SÍ puedes, con las tools. Si la pregunta toca el portfolio o la concentración, llama SIEMPRE a get_portfolio_summary primero y responde con los pesos reales (qué posiciones pesan más y dónde hay sobreconcentración).
 
                 PRINCIPIOS:
                 - Responde siempre en español
@@ -47,6 +48,7 @@ def build_system_prompt(df_movements_recent):
                 - Si la pregunta no está relacionada con finanzas personales, gastos o inversiones, responde ÚNICAMENTE con: "Lo siento, solo puedo ayudarte con consultas sobre tus finanzas personales."
 
                 SCOPE:
+                ✅ Movimientos individuales (un gasto o ingreso concreto, por fecha/categoría/importe)
                 ✅ Gastos mensuales y por categoría
                 ✅ Comparaciones entre meses
                 ✅ Portfolio, posiciones, pesos, concentración y diversificación
@@ -61,7 +63,7 @@ def build_system_prompt(df_movements_recent):
 
 
 async def run_agent_stream(user_id, access_token, message, history, context=None, remember=False):
-    _, df_movements_recent, df_portfolio = load_user_data(user_id, access_token)
+    df_movements, df_movements_recent, df_portfolio = load_user_data(user_id, access_token)
     system_prompt = build_system_prompt(df_movements_recent)
 
     supabase = get_supabase_client(access_token)
@@ -125,7 +127,7 @@ async def run_agent_stream(user_id, access_token, message, history, context=None
         for tool_call in msg.tool_calls:
             tool_name = tool_call.function.name
             tool_args = json.loads(tool_call.function.arguments)
-            result = dispatch_tool(tool_name, tool_args, df_movements_recent, df_portfolio)
+            result = dispatch_tool(tool_name, tool_args, df_movements_recent, df_portfolio, df_movements)
             messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": result})
 
     yield "No se pudo resolver la consulta en el número máximo de iteraciones."
