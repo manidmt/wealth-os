@@ -1,4 +1,5 @@
 import type { EbTransaction } from "./bank-mapping.ts";
+import type { EbBalance } from "./bank-balances.ts";
 
 const BASE = "https://api.enablebanking.com";
 
@@ -58,9 +59,11 @@ async function ebFetch(path: string, init?: RequestInit) {
   return resp.json();
 }
 
-export async function listAspsps(country = "ES"): Promise<{ name: string; country: string }[]> {
+export type AspspInfo = { name: string; country: string; maximum_consent_validity?: number };
+
+export async function listAspsps(country = "ES"): Promise<AspspInfo[]> {
   const j = await ebFetch(`/aspsps?country=${country}`);
-  return (j.aspsps ?? []) as { name: string; country: string }[];
+  return (j.aspsps ?? []) as AspspInfo[];
 }
 
 export async function startAuth(p: {
@@ -78,10 +81,23 @@ export async function startAuth(p: {
   }) as Promise<{ url: string }>;
 }
 
-export async function createSession(code: string): Promise<{ session_id: string; accounts: { uid: string }[] }> {
-  return ebFetch(`/sessions`, { method: "POST", body: JSON.stringify({ code }) }) as Promise<{
-    session_id: string; accounts: { uid: string }[];
-  }>;
+export async function createSession(code: string): Promise<
+  SessionAccounts & { session_id: string; access?: { valid_until?: string } }
+> {
+  return ebFetch(`/sessions`, { method: "POST", body: JSON.stringify({ code }) });
+}
+
+type SessionAccounts = { accounts?: (string | { uid?: string })[]; accounts_data?: { uid?: string }[] };
+
+/** POST /sessions devuelve objetos con uid; GET /sessions/{id} puede devolver uids sueltos o accounts_data. */
+export function sessionAccountUids(s: SessionAccounts): string[] {
+  const fromAccounts = (s.accounts ?? []).map((a) => (typeof a === "string" ? a : a?.uid));
+  const fromData = (s.accounts_data ?? []).map((a) => a?.uid);
+  return [...new Set([...fromAccounts, ...fromData].filter((u): u is string => !!u))];
+}
+
+export async function getSession(sessionId: string): Promise<SessionAccounts & { status?: string }> {
+  return ebFetch(`/sessions/${sessionId}`);
 }
 
 export async function getTransactions(
@@ -96,6 +112,17 @@ export async function getTransactions(
   return resp.json();
 }
 
+export async function getBalances(accountUid: string): Promise<EbBalance[]> {
+  const j = await ebFetch(`/accounts/${accountUid}/balances`);
+  return (j.balances ?? []) as EbBalance[];
+}
+
+export async function getAccountDetails(
+  accountUid: string,
+): Promise<{ name?: string; account_id?: { iban?: string } }> {
+  return ebFetch(`/accounts/${accountUid}/details`);
+}
+
 /** Todas las transacciones BOOKED de una cuenta desde dateFrom, siguiendo paginación. */
 export async function getAllTransactions(accountUid: string, dateFrom: string): Promise<EbTransaction[]> {
   const out: EbTransaction[] = [];
@@ -103,6 +130,7 @@ export async function getAllTransactions(accountUid: string, dateFrom: string): 
   do {
     const page = await getTransactions(accountUid, dateFrom, key);
     out.push(...(page.transactions ?? []));
+    console.log("tx page", accountUid.slice(0, 8), "n", (page.transactions ?? []).length, "next", !!page.continuation_key, "pageKeys", Object.keys(page).join(","));
     key = page.continuation_key;
   } while (key);
   return out;

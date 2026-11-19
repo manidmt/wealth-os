@@ -24,10 +24,10 @@ describe("budget-history", () => {
   });
   it("medianByGroup agrupa categorías del mismo grupo dentro del mes", () => {
     const movs = [
-      { month: "2026-01", category: "Comida", amount: 100 },
+      { month: "2026-01", category: "Ocio", amount: 100 },
       { month: "2026-01", category: "Café", amount: 20 },
-      { month: "2026-02", category: "Comida", amount: 80 },
+      { month: "2026-02", category: "Ocio", amount: 80 },
     ];
-    expect(medianByGroup(movs)).toEqual({ comida: 100 });
+    expect(medianByGroup(movs)).toEqual({ ocio: 100 });
   });
 });

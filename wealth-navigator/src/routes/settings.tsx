@@ -22,8 +22,11 @@ import {
   useConnectBank,
   useSyncBank,
   useDisconnectBank,
+  useSetSyncTransactions,
+  useReconnectBank,
   type BankConnection,
 } from "@/lib/bank-api";
+import { EXPIRY_WARNING_DAYS } from "@/lib/bank-health";
 import {
   useExclusionRules,
   useCreateExclusionRule,
@@ -51,6 +54,7 @@ import {
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader, SectionCard, SectionLabel } from "@/components/app/SectionCard";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -95,11 +99,11 @@ function StatusBadge({ status }: { status: BankConnection["status"] }) {
   );
 }
 
-/** true si session_expires_at existe y caduca dentro de 7 días (incluye ya caducadas). */
+/** true si session_expires_at existe y caduca pronto (incluye ya caducadas). */
 function expiresSoon(sessionExpiresAt: string | null): boolean {
   if (!sessionExpiresAt) return false;
   const diffMs = new Date(sessionExpiresAt).getTime() - Date.now();
-  return diffMs <= 7 * 24 * 60 * 60 * 1000;
+  return diffMs <= EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000;
 }
 
 function BankSection() {
@@ -108,6 +112,9 @@ function BankSection() {
   const connectBank = useConnectBank();
   const syncBank = useSyncBank();
   const disconnectBank = useDisconnectBank();
+  const setSyncTransactions = useSetSyncTransactions();
+  const reconnectBank = useReconnectBank();
+  const [syncTransactions, setSyncTransactionsChoice] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -118,7 +125,7 @@ function BankSection() {
   }, [aspsps, search]);
 
   async function handleConnect(aspsp: (typeof aspsps)[number]) {
-    const result = await connectBank.mutateAsync(aspsp);
+    const result = await connectBank.mutateAsync({ aspsp, syncTransactions });
     setDialogOpen(false);
     window.location.href = result.url;
   }
@@ -126,7 +133,7 @@ function BankSection() {
   return (
     <SectionCard
       title="Cuentas bancarias"
-      description="Conecta tus bancos vía Open Banking para importar transacciones automáticamente."
+      description="Conecta tus bancos vía Open Banking para mantener al día el saldo de tus cuentas y, opcionalmente, importar sus movimientos."
     >
       <div className="space-y-3">
         {isLoading && <p className="text-[13px] text-muted-foreground">Cargando…</p>}
@@ -147,10 +154,34 @@ function BankSection() {
                       ? `Sincronizado ${new Date(conn.last_synced_at).toLocaleDateString("es-ES")}`
                       : "Sin sincronizar"}
                   </div>
-                  {expiring && (
-                    <div className="mt-1 flex items-center gap-1 text-[11px] text-warning">
+                  {conn.status === "active" && (
+                    <label className="mt-1 flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Checkbox
+                        checked={conn.sync_transactions}
+                        disabled={setSyncTransactions.isPending}
+                        onCheckedChange={(v) =>
+                          setSyncTransactions.mutate({ connectionId: conn.id, enabled: v === true })
+                        }
+                        className="h-3.5 w-3.5"
+                      />
+                      Importar movimientos (si no, solo saldo)
+                    </label>
+                  )}
+                  {(expiring || conn.status === "expired") && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-warning">
                       <AlertTriangle className="h-3 w-3 shrink-0" />
-                      La sesión caduca pronto, reconecta
+                      {conn.session_expires_at &&
+                      new Date(conn.session_expires_at).getTime() > Date.now()
+                        ? `Caduca el ${new Date(conn.session_expires_at).toLocaleDateString("es-ES")}`
+                        : "Caducada"}
+                      <button
+                        type="button"
+                        onClick={() => reconnectBank.reconnect(conn)}
+                        disabled={reconnectBank.isPending}
+                        className="ml-1 font-medium underline underline-offset-2 hover:text-foreground disabled:opacity-40"
+                      >
+                        Reconectar
+                      </button>
                     </div>
                   )}
                 </div>
@@ -185,7 +216,7 @@ function BankSection() {
 
         {connections.length === 0 && !isLoading && (
           <p className="text-[13px] text-muted-foreground">
-            Ningún banco conectado. Conecta tu primer banco para importar transacciones
+            Ningún banco conectado. Conecta tu primer banco para sincronizar su saldo y movimientos
             automáticamente.
           </p>
         )}
@@ -216,6 +247,13 @@ function BankSection() {
                 onChange={(e) => setSearch(e.target.value)}
                 autoFocus
               />
+              <label className="flex cursor-pointer items-center gap-2 px-1 text-[12.5px] text-muted-foreground">
+                <Checkbox
+                  checked={syncTransactions}
+                  onCheckedChange={(v) => setSyncTransactionsChoice(v === true)}
+                />
+                Importar también los movimientos (si no, solo el saldo)
+              </label>
               <div className="grid max-h-72 gap-2 overflow-y-auto pr-1">
                 {isLoadingAspsps && (
                   <p className="px-1 text-[13px] text-muted-foreground">Cargando bancos…</p>

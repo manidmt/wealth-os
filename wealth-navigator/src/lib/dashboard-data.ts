@@ -61,19 +61,30 @@ export type DashboardData = {
 export const data = rawData as DashboardData;
 
 const ASSET_LABELS: Record<string, string> = {
-  stock: "Acciones", etf: "ETF", fund: "Fondo", crypto: "Crypto",
-  gold: "Oro / Metales", bond: "Bonos", broker_cash: "Cash en broker", other: "Otro",
+  stock: "Acciones",
+  etf: "ETF",
+  fund: "Fondo",
+  crypto: "Crypto",
+  gold: "Oro / Metales",
+  bond: "Bonos",
+  broker_cash: "Cash en broker",
+  other: "Otro",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function computeDashboard(
+export function computeDashboard(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   movements: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   positions: any[],
-  snapshots: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  allSnapshots: any[],
   cashAccounts: { balance: unknown }[],
 ): DashboardData {
   const now = new Date();
   const currentCalendarMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // La foto automática diaria también escribe el mes en curso; ese mes siempre se
+  // calcula en vivo y no es un cierre hasta que termina.
+  const snapshots = allSnapshots.filter((s) => (s.month as string) < currentCalendarMonth);
 
   // Group movements by month
   type MonthEntry = { income: number; expense: number; categories: Map<string, number> };
@@ -81,7 +92,8 @@ function computeDashboard(
   for (const m of movements) {
     if (m.excluded) continue;
     const month = (m.date as string).slice(0, 7);
-    if (!byMonthMap.has(month)) byMonthMap.set(month, { income: 0, expense: 0, categories: new Map() });
+    if (!byMonthMap.has(month))
+      byMonthMap.set(month, { income: 0, expense: 0, categories: new Map() });
     const entry = byMonthMap.get(month)!;
     const amount = Number(m.amount);
     if (m.type === "income") {
@@ -95,9 +107,14 @@ function computeDashboard(
   const months = [...byMonthMap.keys()].sort();
   const byMonth: ExpenseMonth[] = months.map((month) => {
     const { income, expense } = byMonthMap.get(month)!;
-    return { month, value: expense, expenseTotal: expense, incomeTotal: income, net: income - expense };
+    return {
+      month,
+      value: expense,
+      expenseTotal: expense,
+      incomeTotal: income,
+      net: income - expense,
+    };
   });
-
 
   // Portfolio
   const totalPortfolio = positions.reduce(
@@ -113,10 +130,13 @@ function computeDashboard(
       Number((p as Record<string, unknown>).quantity) *
       Number((p as Record<string, unknown>).current_price) *
       (Number((p as Record<string, unknown>).fx_to_eur) || 1);
-    const platform = (p as Record<string, unknown>).platform as string || "Sin plataforma";
+    const platform = ((p as Record<string, unknown>).platform as string) || "Sin plataforma";
     byPlatformMap.set(platform, (byPlatformMap.get(platform) ?? 0) + val);
-    const cat = (p as Record<string, unknown>).asset_type as string || "other";
-    byCategoryMap.set(ASSET_LABELS[cat] ?? cat, (byCategoryMap.get(ASSET_LABELS[cat] ?? cat) ?? 0) + val);
+    const cat = ((p as Record<string, unknown>).asset_type as string) || "other";
+    byCategoryMap.set(
+      ASSET_LABELS[cat] ?? cat,
+      (byCategoryMap.get(ASSET_LABELS[cat] ?? cat) ?? 0) + val,
+    );
   }
 
   const byPlatform = [...byPlatformMap.entries()]
@@ -153,8 +173,8 @@ function computeDashboard(
   type SnapRecord = Record<string, unknown>;
   const snapMap = new Map<string, SnapRecord>();
   for (const s of snapshots) snapMap.set(s.month as string, s as SnapRecord);
-  const latestSnap = snapshots.length > 0 ? snapshots[snapshots.length - 1] as SnapRecord : null;
-  const oldestSnap = snapshots.length > 0 ? snapshots[0] as SnapRecord : null;
+  const latestSnap = snapshots.length > 0 ? (snapshots[snapshots.length - 1] as SnapRecord) : null;
+  const oldestSnap = snapshots.length > 0 ? (snapshots[0] as SnapRecord) : null;
 
   let series: SeriesPoint[];
 
@@ -171,10 +191,9 @@ function computeDashboard(
     const oldestMonth = oldestSnap.month as string;
 
     // All months starting from the oldest anchor (union of snapshot months + movement months).
-    const allMonths = [...new Set([
-      ...[...snapMap.keys()],
-      ...months.filter((m) => m >= oldestMonth),
-    ])].sort();
+    const allMonths = [
+      ...new Set([...[...snapMap.keys()], ...months.filter((m) => m >= oldestMonth)]),
+    ].sort();
 
     let prevNW = Number(oldestSnap.net_worth);
     let prevAssets = Number(oldestSnap.assets);
@@ -195,7 +214,13 @@ function computeDashboard(
         prevAssets += savings;
         prevNW += savings;
       }
-      series.push({ month, assets: prevAssets, liabilities: prevLiabilities, netWorth: prevNW, savings });
+      series.push({
+        month,
+        assets: prevAssets,
+        liabilities: prevLiabilities,
+        netWorth: prevNW,
+        savings,
+      });
     }
   }
 
@@ -209,13 +234,13 @@ function computeDashboard(
   const currentSavings = currentMovEntry ? currentMovEntry.income - currentMovEntry.expense : 0;
   const snapPortfolioValue = latestSnap ? Number(latestSnap.portfolio_value ?? 0) : 0;
   // When no snapshot tracks portfolio_value, add the full portfolio (no prior baseline to delta against).
-  const portfolioDelta = latestSnap && snapPortfolioValue > 0
-    ? totalPortfolio - snapPortfolioValue
-    : totalPortfolio;
+  const portfolioDelta =
+    latestSnap && snapPortfolioValue > 0 ? totalPortfolio - snapPortfolioValue : totalPortfolio;
   // Use the last *closed* month (before current calendar month) as the NW base.
   const prevClosedEntry = [...series].reverse().find((s) => s.month < currentCalendarMonth) ?? null;
   const baseNW = prevClosedEntry ? prevClosedEntry.netWorth : 0;
-  const baseLiabilities = prevClosedEntry ? prevClosedEntry.liabilities : 0;
+  // Sin pasivos que trackear: el patrimonio neto en curso es 100% activos.
+  const baseLiabilities = 0;
   const liveNW = baseNW + currentSavings + portfolioDelta;
 
   const cash = resolveCash({
@@ -266,7 +291,9 @@ function computeDashboard(
     },
     allocation:
       cash.total > 0
-        ? [...allocation, { label: "Efectivo", value: cash.total }].sort((a, b) => b.value - a.value)
+        ? [...allocation, { label: "Efectivo", value: cash.total }].sort(
+            (a, b) => b.value - a.value,
+          )
         : allocation,
     cash,
     platforms: byPlatform,
@@ -292,13 +319,19 @@ export function useLiveDashboardData() {
         { data: movements, error: movErr },
         { data: positions, error: posErr },
         { data: snapshots, error: snapErr },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         { data: cashAccounts, error: cashErr },
       ] = await Promise.all([
-        supabase.from("movements").select("type, date, category, amount, currency, excluded").order("date"),
+        supabase
+          .from("movements")
+          .select("type, date, category, amount, currency, excluded")
+          .order("date"),
         supabase.from("portfolio_positions").select("*"),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).from("monthly_snapshots").select("month, assets, liabilities, net_worth, savings, portfolio_value").order("month"),
+        (supabase as any)
+          .from("monthly_snapshots")
+          .select("month, assets, liabilities, net_worth, savings, portfolio_value")
+          .order("month"),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from("cash_accounts").select("balance"),
       ]);
@@ -306,7 +339,12 @@ export function useLiveDashboardData() {
       if (posErr) throw posErr;
       if (snapErr) throw snapErr;
       if (cashErr) throw cashErr;
-      return computeDashboard(movements ?? [], positions ?? [], snapshots ?? [], cashAccounts ?? []);
+      return computeDashboard(
+        movements ?? [],
+        positions ?? [],
+        snapshots ?? [],
+        cashAccounts ?? [],
+      );
     },
     enabled: !!user,
     placeholderData: rawData as DashboardData,
@@ -315,19 +353,26 @@ export function useLiveDashboardData() {
 }
 
 export const euro = new Intl.NumberFormat("es-ES", {
-  style: "currency", currency: "EUR", maximumFractionDigits: 0,
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
 });
 
 export const euro1 = new Intl.NumberFormat("es-ES", {
-  style: "currency", currency: "EUR", maximumFractionDigits: 1,
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 1,
 });
 
 export const euro2 = new Intl.NumberFormat("es-ES", {
-  style: "currency", currency: "EUR", maximumFractionDigits: 2,
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 2,
 });
 
 export const pct = new Intl.NumberFormat("es-ES", {
-  style: "percent", maximumFractionDigits: 1,
+  style: "percent",
+  maximumFractionDigits: 1,
 });
 
 export function formatPercent(value: number) {

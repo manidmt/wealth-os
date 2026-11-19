@@ -34,11 +34,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const authHeader = req.headers.get("Authorization") ?? "";
-  const db = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
+  // El cron diario no tiene sesión de usuario: se identifica con un secreto que solo
+  // conocen la función y Vault (la clave publicable del cron es pública).
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const isCron = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
+  const db = isCron
+    ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+    : createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
 
   const today = new Date().toISOString().slice(0, 10);
   const updated: { name: string; price: number }[] = [];

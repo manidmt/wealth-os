@@ -13,6 +13,8 @@ type Props = {
   series?: number[];
   /** Override sparkline color (defaults: chart-1, or white tint on primary). */
   sparkColor?: string;
+  /** When set, the whole card becomes a button that opens the detail for this KPI. */
+  onClick?: () => void;
 };
 
 export function KpiCard({
@@ -24,16 +26,20 @@ export function KpiCard({
   className,
   series,
   sparkColor,
+  onClick,
 }: Props) {
   const isPrimary = accent === "primary";
-  return (
-    <div
-      className={cn(
-        "group relative flex flex-col justify-between gap-5 overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[0_1px_0_0_oklch(0.85_0.012_95/0.5)] transition-colors hover:border-border-strong",
-        isPrimary && "bg-primary text-primary-foreground border-primary",
-        className,
-      )}
-    >
+
+  const containerClassName = cn(
+    "group relative flex w-full flex-col justify-between gap-5 overflow-hidden rounded-xl border border-border bg-card p-5 text-left shadow-[0_1px_0_0_oklch(0.85_0.012_95/0.5)] transition-colors hover:border-border-strong",
+    isPrimary && "bg-primary text-primary-foreground border-primary",
+    onClick &&
+      "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    className,
+  );
+
+  const content = (
+    <>
       {isPrimary && (
         <div
           aria-hidden
@@ -75,12 +81,7 @@ export function KpiCard({
       </div>
 
       {series && series.length > 1 ? (
-        <div
-          className={cn(
-            "-mx-1.5 -mb-1.5 h-10",
-            isPrimary ? "opacity-90" : "opacity-80",
-          )}
-        >
+        <div className={cn("-mx-1.5 -mb-1.5 h-10", isPrimary ? "opacity-90" : "opacity-80")}>
           <Sparkline
             values={series}
             color={
@@ -92,6 +93,16 @@ export function KpiCard({
           />
         </div>
       ) : null}
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={containerClassName}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={containerClassName}>{content}</div>;
 }

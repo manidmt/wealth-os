@@ -6,9 +6,12 @@ export type PlanningTab = "inversion" | "gastos";
 export function PlanningTabs({
   tab,
   onTabChange,
+  focusPlanId,
 }: {
   tab: PlanningTab;
   onTabChange: (t: PlanningTab) => void;
+  /** Id de un plan de inversión a resaltar al entrar (p. ej. desde Portfolio). */
+  focusPlanId?: string;
 }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-4 md:px-8">
@@ -29,7 +32,11 @@ export function PlanningTabs({
         ))}
       </div>
       <div className="pt-2">
-        {tab === "inversion" ? <InvestmentPlanning /> : <ExpensePlanning />}
+        {tab === "inversion" ? (
+          <InvestmentPlanning focusPlanId={focusPlanId} />
+        ) : (
+          <ExpensePlanning />
+        )}
       </div>
     </div>
   );

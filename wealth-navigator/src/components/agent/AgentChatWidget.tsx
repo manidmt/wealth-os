@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAgentMessages } from "@/lib/agent-api";
 
 const WS_BASE_URL =
-  (import.meta.env.VITE_AGENT_WS_URL as string | undefined) ?? "ws://localhost:8000";
+  (import.meta.env.VITE_AGENT_WS_URL as string | undefined) ?? "ws://localhost:8001";
 
 type Msg = { role: "user" | "system"; content: string; id: string };
 

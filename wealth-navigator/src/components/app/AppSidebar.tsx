@@ -21,7 +21,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { BrandMark } from "@/components/app/BrandMark";
+import { LogoMark } from "@/components/app/LogoMark";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -60,7 +60,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border px-3 py-[10px]">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
-            <BrandMark className="h-4 w-4" />
+            <LogoMark className="h-4 w-4" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="font-display text-sm font-semibold tracking-tight">Wealth OS</span>

@@ -220,17 +220,17 @@ function PortfolioPage() {
         <section className="grid gap-5 lg:grid-cols-2">
           <SectionCard
             title="Por categoría"
-            description="Peso de cada tipo de activo."
+            description="Peso de cada tipo de activo. Pulsa un segmento para filtrar la tabla."
             askPrompt="¿Cómo está repartido mi portfolio por tipo de activo y dónde hay sobreexposición?"
           >
-            <DonutChart data={byCategory} total={total} />
+            <DonutChart data={byCategory} total={total} onSelect={setCategoryFilter} />
           </SectionCard>
           <SectionCard
             title="Por plataforma"
-            description="Distribución entre brokers y custodios."
+            description="Distribución entre brokers y custodios. Pulsa una plataforma para filtrar la tabla."
             askPrompt="¿En qué plataformas tengo más concentración y cuál es el riesgo asociado?"
           >
-            <BarList items={byPlatform} total={total} />
+            <BarList items={byPlatform} total={total} onSelect={setPlatformFilter} />
           </SectionCard>
         </section>
 

@@ -62,11 +62,10 @@ function NetWorthBody() {
 
   const netTrend = series.map((p) => p.netWorth);
   const assetsTrend = series.map((p) => p.assets);
-  const liabTrend = series.map((p) => Math.abs(p.liabilities));
 
   return (
     <div className="space-y-10 px-4 py-8 md:px-8">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <KpiCard
           accent="primary"
           label="Patrimonio neto"
@@ -79,13 +78,6 @@ function NetWorthBody() {
           value={money.format(last.assets)}
           hint="Total bruto del cierre"
           series={assetsTrend}
-        />
-        <KpiCard
-          label="Pasivos"
-          value={money.format(last.liabilities)}
-          hint="Préstamos y deudas"
-          series={liabTrend}
-          sparkColor="var(--negative)"
         />
         <KpiCard
           label="Crecimiento"
@@ -113,7 +105,6 @@ function NetWorthBody() {
               <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Mes</th>
                 <th className="px-4 py-3 font-medium text-right">Activos</th>
-                <th className="px-4 py-3 font-medium text-right">Pasivos</th>
                 <th className="px-4 py-3 font-medium text-right">Patrimonio</th>
                 <th className="px-4 py-3 font-medium text-right">Ahorro</th>
                 <th className="px-4 py-3 font-medium text-right">Δ</th>
@@ -132,9 +123,6 @@ function NetWorthBody() {
                     <td className="px-4 py-3 font-medium">{formatMonth(p.month)}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
                       {money.format1(p.assets)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                      {money.format1(p.liabilities)}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-medium">
                       {money.format1(p.netWorth)}

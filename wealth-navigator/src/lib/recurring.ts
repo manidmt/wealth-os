@@ -26,10 +26,11 @@ function mostFrequent(values: string[]): string {
   for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
   let best = values[0] ?? "Otro";
   let bestN = 0;
-  for (const [v, n] of counts) if (n > bestN) {
-    best = v;
-    bestN = n;
-  }
+  for (const [v, n] of counts)
+    if (n > bestN) {
+      best = v;
+      bestN = n;
+    }
   return best;
 }
 
@@ -81,6 +82,35 @@ export function detectRecurring(
     });
   }
   return out.sort((a, b) => b.monthlyAmount - a.monthlyAmount);
+}
+
+/**
+ * Aplica correcciones del usuario sobre la detección automática: nombre o
+ * importe mensual sobrescritos, o el gasto ocultado como falso positivo.
+ * No cambia la detección en sí — solo su presentación/uso posterior, para
+ * que todos los consumidores (tarjeta, presupuesto, insights) vean lo mismo.
+ */
+export function applyOverrides(
+  recurring: RecurringExpense[],
+  overrides: {
+    concept: string;
+    display_name: string | null;
+    monthly_amount: number | null;
+    active: boolean;
+  }[],
+): RecurringExpense[] {
+  const byConcept = new Map(overrides.map((o) => [o.concept, o]));
+  const out: RecurringExpense[] = [];
+  for (const r of recurring) {
+    const o = byConcept.get(r.concept);
+    if (o && !o.active) continue;
+    out.push({
+      ...r,
+      displayConcept: o?.display_name ?? r.displayConcept,
+      monthlyAmount: o?.monthly_amount ?? r.monthlyAmount,
+    });
+  }
+  return out;
 }
 
 export function recurringFloorByGroup(recurring: RecurringExpense[]): BudgetMap {

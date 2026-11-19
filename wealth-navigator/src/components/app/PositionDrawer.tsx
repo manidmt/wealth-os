@@ -10,10 +10,19 @@ import {
 import { PlatformBadge } from "./PlatformBadge";
 import { AssistantMark } from "@/components/assistant/AssistantMark";
 import { PositionSheet } from "@/components/app/PositionSheet";
+import { PositionLotsTable } from "@/components/app/PositionLotsTable";
 import { useMoney } from "@/components/app/CurrencyProvider";
 import { useDeletePosition, ASSET_TYPE_LABELS, type PortfolioPosition } from "@/lib/portfolio-api";
+import { useInvestmentPlans } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
-import { Pencil, Trash2, ShoppingCart, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  ShoppingCart,
+  ArrowUpRight,
+  ArrowDownRight,
+  CalendarRange,
+} from "lucide-react";
 
 type Props = {
   position: PortfolioPosition | null;
@@ -26,6 +35,7 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
   const navigate = useNavigate();
   const money = useMoney();
   const deletePosition = useDeletePosition();
+  const { data: plans = [] } = useInvestmentPlans();
 
   const [sheetMode, setSheetMode] = useState<"edit" | "add-shares" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -43,6 +53,7 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
   const pnlZero = position.pnlValueEur === 0;
   const PnlIcon = pnlZero ? null : pnlPositive ? ArrowUpRight : ArrowDownRight;
   const isCash = position.assetType === "broker_cash";
+  const feedingPlans = plans.filter((p) => p.portfolio_position_id === position.id);
   const askPrompt = `Cuéntame más sobre mi posición "${position.assetName}" en ${position.platform}: peso, riesgo y posibles ajustes.`;
 
   async function handleDelete() {
@@ -74,9 +85,7 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
             <div className="flex items-center justify-between gap-3 pt-1">
               <PlatformBadge name={position.platform} />
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                {position.ticker && (
-                  <span className="font-mono">{position.ticker}</span>
-                )}
+                {position.ticker && <span className="font-mono">{position.ticker}</span>}
                 {position.currency !== "EUR" && (
                   <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
                     {position.currency}
@@ -114,10 +123,7 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
                     label="Precio medio"
                     value={`${position.avgCost.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${position.currency}`}
                   />
-                  <Stat
-                    label="Coste total"
-                    value={money.format1(position.costBasisEur)}
-                  />
+                  <Stat label="Coste total" value={money.format1(position.costBasisEur)} />
                 </div>
               </div>
 
@@ -160,19 +166,46 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
                     )}
                   >
                     {PnlIcon && <PnlIcon className="h-3.5 w-3.5" />}
-                    {position.pnlPct != null
-                      ? `${(position.pnlPct * 100).toFixed(2)}%`
-                      : "—"}
+                    {position.pnlPct != null ? `${(position.pnlPct * 100).toFixed(2)}%` : "—"}
                   </div>
                 </div>
               </div>
+
+              <div className="mt-4 px-4">
+                <PositionLotsTable positionId={position.id} currency={position.currency} />
+              </div>
+
+              {feedingPlans.length > 0 && (
+                <div className="mt-4 px-4">
+                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Alimentada por
+                  </div>
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {feedingPlans.map((plan) => (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => {
+                          onOpenChange(false);
+                          navigate({
+                            to: "/planning",
+                            search: { tab: "inversion", planId: plan.id },
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 self-start rounded-md border border-border bg-card px-2.5 py-1.5 text-[12px] font-medium text-foreground/80 transition hover:border-border-strong hover:text-foreground"
+                      >
+                        <CalendarRange className="h-3.5 w-3.5" />
+                        Ver plan: {plan.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
           {position.notes ? (
-            <div className="mt-3 px-4 text-[12px] text-muted-foreground">
-              {position.notes}
-            </div>
+            <div className="mt-3 px-4 text-[12px] text-muted-foreground">{position.notes}</div>
           ) : null}
 
           {confirmDelete && (
@@ -250,7 +283,9 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
           mode={sheetMode}
           position={position}
           open={!!sheetMode}
-          onOpenChange={(o) => { if (!o) setSheetMode(null); }}
+          onOpenChange={(o) => {
+            if (!o) setSheetMode(null);
+          }}
         />
       )}
     </>
@@ -260,9 +295,7 @@ export function PositionDrawer({ position, totalValue, open, onOpenChange }: Pro
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div className="mt-1 font-display text-base font-semibold tabular-nums text-foreground">
         {value}
       </div>

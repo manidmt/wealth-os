@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapTransaction, isBooked, type EbTransaction } from "./bank-mapping";
+import { mapTransaction, isBooked, withFallbackIds, type EbTransaction } from "./bank-mapping";
 
 const base: EbTransaction = {
   transaction_amount: { amount: "12.34", currency: "EUR" },
@@ -32,5 +32,31 @@ describe("isBooked", () => {
   it("BOOK true, PDNG false", () => {
     expect(isBooked(base)).toBe(true);
     expect(isBooked({ ...base, status: "PDNG" })).toBe(false);
+  });
+});
+
+describe("withFallbackIds", () => {
+  const noId: EbTransaction = { ...base, transaction_id: undefined, entry_reference: undefined };
+
+  it("respeta los ids del banco", () => {
+    expect(withFallbackIds([base], "acc")[0].fallback_id).toBeUndefined();
+  });
+  it("genera un id estable entre syncs", () => {
+    const a = withFallbackIds([noId], "acc")[0].fallback_id;
+    const b = withFallbackIds([{ ...noId }], "acc")[0].fallback_id;
+    expect(a).toMatch(/^fp:[0-9a-f]{16}$/);
+    expect(a).toBe(b);
+    expect(mapTransaction(withFallbackIds([noId], "acc")[0], "u1").external_id).toBe(a);
+  });
+  it("distingue movimientos idénticos del mismo día y cuentas distintas", () => {
+    const [x, y] = withFallbackIds([noId, { ...noId }], "acc");
+    expect(x.fallback_id).not.toBe(y.fallback_id);
+    expect(withFallbackIds([noId], "otra")[0].fallback_id).not.toBe(x.fallback_id);
+  });
+  it("cambia si cambia importe o fecha", () => {
+    const id = withFallbackIds([noId], "acc")[0].fallback_id;
+    const amount = { ...noId, transaction_amount: { amount: "12.35", currency: "EUR" } };
+    expect(withFallbackIds([amount], "acc")[0].fallback_id).not.toBe(id);
+    expect(withFallbackIds([{ ...noId, booking_date: "2026-06-11" }], "acc")[0].fallback_id).not.toBe(id);
   });
 });

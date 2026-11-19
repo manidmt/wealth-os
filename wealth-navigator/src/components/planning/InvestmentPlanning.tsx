@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -96,7 +96,7 @@ const AUTO_POSITION = "__auto__";
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
-export function InvestmentPlanning() {
+export function InvestmentPlanning({ focusPlanId }: { focusPlanId?: string } = {}) {
   const { data: plans = [], isLoading } = useInvestmentPlans();
   const { data: signals = {} } = useLatestSignals();
   const { data: positions = [] } = usePortfolioPositions();
@@ -105,8 +105,17 @@ export function InvestmentPlanning() {
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<InvestmentPlan | null>(null);
   const [contributionPlan, setContributionPlan] = useState<InvestmentPlan | null>(null);
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(focusPlanId ?? null);
   const [horizon, setHorizon] = useState<5 | 10 | 20>(10);
+
+  const focusedRowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (focusPlanId && focusedRowRef.current) {
+      focusedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    // Solo al montar con un plan objetivo (llegada desde Portfolio); no en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const monthlyFinancials: MonthlyFinancials[] = useMemo(
     () =>
@@ -125,6 +134,8 @@ export function InvestmentPlanning() {
 
   const activePlans = plans.filter((p) => p.active);
   const strategyPlans = plans.filter((p) => p.asset_class);
+  const simpleActivePlans = activePlans.filter((p) => !p.asset_class);
+  const strategyActivePlans = activePlans.filter((p) => p.asset_class);
   const projectionPlan = plans.find((p) => p.id === selectedPlanId) ?? activePlans[0] ?? null;
 
   const currentMonthFin = monthlyFinancials.find((m) => m.month === month);
@@ -189,32 +200,69 @@ export function InvestmentPlanning() {
         {/* Calibración anual (solo si hay estrategias pendientes) */}
         <JanuaryWizard strategies={strategyPlans} signals={signals} />
 
-        {/* Mis planes */}
+        {/* Planes DCA simples: aportación fija o por regla, sin motor de estrategia */}
         <SectionCard
-          title="Mis planes"
+          title="Planes DCA"
           description={
             isLoading
               ? "Cargando…"
-              : activePlans.length === 0
-                ? "No tienes planes activos aún. Crea tu primer plan DCA."
-                : undefined
+              : simpleActivePlans.length === 0
+                ? "No tienes planes DCA activos aún. Crea tu primer plan."
+                : "Aportaciones periódicas con importe o regla fija."
           }
         >
           <div>
-            {activePlans.map((plan) => (
-              <PlanRow
+            {simpleActivePlans.map((plan) => (
+              <div
                 key={plan.id}
-                plan={plan}
-                signals={signals}
-                positions={positions}
-                monthlyFinancials={monthlyFinancials}
-                month={month}
-                onEdit={() => openEdit(plan)}
-                onContribute={() => setContributionPlan(plan)}
-              />
+                ref={plan.id === focusPlanId ? focusedRowRef : undefined}
+                className={
+                  plan.id === focusPlanId ? "rounded-lg ring-2 ring-primary/50" : undefined
+                }
+              >
+                <PlanRow
+                  plan={plan}
+                  signals={signals}
+                  positions={positions}
+                  monthlyFinancials={monthlyFinancials}
+                  month={month}
+                  onEdit={() => openEdit(plan)}
+                  onContribute={() => setContributionPlan(plan)}
+                />
+              </div>
             ))}
           </div>
         </SectionCard>
+
+        {/* Planes con motor de estrategia: señales, pólvora seca, cuota variable */}
+        {strategyActivePlans.length > 0 && (
+          <SectionCard
+            title="Estrategias"
+            description="Cuota variable según señales de mercado y pólvora seca disponible."
+          >
+            <div>
+              {strategyActivePlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  ref={plan.id === focusPlanId ? focusedRowRef : undefined}
+                  className={
+                    plan.id === focusPlanId ? "rounded-lg ring-2 ring-primary/50" : undefined
+                  }
+                >
+                  <PlanRow
+                    plan={plan}
+                    signals={signals}
+                    positions={positions}
+                    monthlyFinancials={monthlyFinancials}
+                    month={month}
+                    onEdit={() => openEdit(plan)}
+                    onContribute={() => setContributionPlan(plan)}
+                  />
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
 
         {/* Rutina mensual */}
         <MonthlyRoutine strategies={strategyPlans} signals={signals} />

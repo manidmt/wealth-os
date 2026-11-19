@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Landmark, Plus, Trash2 } from "lucide-react";
 import { SectionCard } from "@/components/app/SectionCard";
 import { Input } from "@/components/ui/input";
 import { useMoney } from "@/components/app/CurrencyProvider";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useCashAccounts, useUpsertCashAccount, useDeleteCashAccount } from "@/lib/cash-api";
+import { useMovementsSince } from "@/lib/movements-api";
+
+function syncedAgo(iso: string): string {
+  const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (mins < 60) return "hace minutos";
+  if (mins < 1440) return `hace ${Math.floor(mins / 60)} h`;
+  return `hace ${Math.floor(mins / 1440)} d`;
+}
 
 export function CashAccountsCard() {
   const money = useMoney();
@@ -43,27 +51,58 @@ export function CashAccountsCard() {
   const threshold = Math.max(50, Math.abs(cash.derived) * 0.01);
   const drift = cash.hasAccounts && Math.abs(cash.reconcileDelta) > threshold;
 
+  // Cuenta más desactualizada: el saldo manual no refleja los movimientos
+  // registrados después de su última edición hasta que el usuario lo actualiza.
+  const staleAccount = accounts
+    .filter((a) => !a.bank_account_uid)
+    .reduce<
+      (typeof accounts)[number] | null
+    >((oldest, a) => (!oldest || a.updated_at < oldest.updated_at ? a : oldest), null);
+  const staleDays = staleAccount
+    ? Math.floor((Date.now() - new Date(staleAccount.updated_at).getTime()) / 86_400_000)
+    : 0;
+  const { data: netSinceStale = 0 } = useMovementsSince(
+    staleAccount && staleDays >= 3 ? staleAccount.updated_at : null,
+  );
+
   return (
     <SectionCard
       title="Cuentas de efectivo"
-      description="Liquidez por cuenta. Si no añades cuentas, se usa el efectivo derivado del último cierre."
+      description="Liquidez por cuenta. Las cuentas con banco conectado se actualizan solas; las demás, a mano. Sin cuentas, se usa el efectivo derivado del último cierre."
     >
       <div className="space-y-2">
         {accounts.map((a) => (
           <div key={a.id} className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{a.name}</span>
-            <Input
-              type="number"
-              step="any"
-              defaultValue={String(a.balance)}
-              onBlur={(e) => {
-                const balance = parseFloat(e.target.value.replace(",", "."));
-                if (Number.isFinite(balance) && balance !== a.balance) {
-                  upsert.mutate({ id: a.id, name: a.name, balance });
-                }
-              }}
-              className="h-8 w-32 text-right text-[13px] tabular-nums"
-            />
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+              {a.name}
+              {a.bank_account_uid && (
+                <span
+                  className="ml-2 text-[11px] font-normal text-muted-foreground"
+                  title="Saldo leído del banco en cada sincronización"
+                >
+                  <Landmark className="mr-0.5 inline h-3 w-3 align-[-1px]" />
+                  {a.balance_synced_at ? syncedAgo(a.balance_synced_at) : "banco"}
+                </span>
+              )}
+            </span>
+            {a.bank_account_uid ? (
+              <span className="w-32 pr-3 text-right text-[13px] tabular-nums">
+                {money.format1(a.balance)}
+              </span>
+            ) : (
+              <Input
+                type="number"
+                step="any"
+                defaultValue={String(a.balance)}
+                onBlur={(e) => {
+                  const balance = parseFloat(e.target.value.replace(",", "."));
+                  if (Number.isFinite(balance) && balance !== a.balance) {
+                    upsert.mutate({ id: a.id, name: a.name, balance });
+                  }
+                }}
+                className="h-8 w-32 text-right text-[13px] tabular-nums"
+              />
+            )}
             <button
               type="button"
               onClick={() => del.mutate(a.id)}
@@ -122,6 +161,13 @@ export function CashAccountsCard() {
         {drift && (
           <p className="pt-1 text-[11.5px] text-negative">
             No cuadra con el snapshot. Revisa los saldos o el cierre del mes.
+          </p>
+        )}
+        {staleAccount && staleDays >= 3 && Math.abs(netSinceStale) > 0.5 && (
+          <p className="pt-1 text-[11.5px] text-amber-600 dark:text-amber-400">
+            El saldo de «{staleAccount.name}» no se actualiza desde hace {staleDays} días. Desde
+            entonces se {netSinceStale >= 0 ? "ingresaron" : "gastaron"}{" "}
+            {money.format1(Math.abs(netSinceStale))} que aún no están reflejados en ese saldo.
           </p>
         )}
         {!cash.hasAccounts && (

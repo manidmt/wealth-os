@@ -3,6 +3,9 @@ export type CashAccount = {
   name: string;
   balance: number;
   updated_at: string;
+  /** Presente si el saldo viene del banco (Open Banking) y no se edita a mano. */
+  bank_account_uid?: string | null;
+  balance_synced_at?: string | null;
 };
 
 export type CashResolution = {

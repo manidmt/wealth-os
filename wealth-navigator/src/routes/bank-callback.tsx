@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { functionError } from "@/lib/bank-api";
 
 export const Route = createFileRoute("/bank-callback")({
   component: BankCallbackPage,
@@ -27,14 +28,18 @@ function BankCallbackPage() {
 
     supabase.functions
       .invoke("bank-callback", { body: { code, state } })
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error || data?.error) {
           setStatus("error");
-          setMessage(error?.message ?? data?.error ?? "Error desconocido");
+          setMessage(
+            error ? (await functionError(error)).message : (data?.error ?? "Error desconocido"),
+          );
           return;
         }
         setStatus("ok");
-        setMessage(`Banco conectado. ${data.inserted ?? 0} movimientos importados.`);
+        setMessage(
+          `Banco conectado. ${data.inserted ?? 0} movimientos importados, ${data.balances ?? 0} saldos actualizados.`,
+        );
         setTimeout(() => navigate({ to: "/settings" }), 1500);
       })
       .catch((e: Error) => {

@@ -12,6 +12,27 @@ export function roundTo5(n: number): number {
   return Math.round(n / 5) * 5;
 }
 
+/** Serie mensual de gasto real por grupo, alineada a los meses presentes en el histórico (0 donde no hubo gasto). */
+export function seriesByGroup(
+  movsConMes: { month: string; category: string; amount: number }[],
+): Record<string, number[]> {
+  const perGroupMonth = new Map<string, Map<string, number>>();
+  const months = new Set<string>();
+  for (const m of movsConMes) {
+    const g = groupForCategory(m.category);
+    months.add(m.month);
+    if (!perGroupMonth.has(g)) perGroupMonth.set(g, new Map());
+    const byMonth = perGroupMonth.get(g)!;
+    byMonth.set(m.month, (byMonth.get(m.month) ?? 0) + (Number(m.amount) || 0));
+  }
+  const sortedMonths = [...months].sort();
+  const out: Record<string, number[]> = {};
+  for (const [g, byMonth] of perGroupMonth) {
+    out[g] = sortedMonths.map((mo) => byMonth.get(mo) ?? 0);
+  }
+  return out;
+}
+
 export function medianByGroup(
   movsConMes: { month: string; category: string; amount: number }[],
 ): BudgetMap {

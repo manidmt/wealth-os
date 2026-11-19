@@ -36,7 +36,6 @@ export const EXPENSE_CATEGORIES = [
   "Cuidado personal",
   "Deporte",
   "Educación",
-  "Formación",
   "Gestiones",
   "Gimnasio",
   "Higiene",
@@ -54,15 +53,7 @@ export const EXPENSE_CATEGORIES = [
   "Viaje",
 ];
 
-export const INCOME_CATEGORIES = [
-  "Nómina",
-  "Salario",
-  "Extra",
-  "Tarjeta Restaurante",
-  "Ticket restaurante",
-  "Comer fuera",
-  "Otros ingresos",
-];
+export const INCOME_CATEGORIES = ["Salario", "Extra", "Tarjeta Restaurante", "Otros ingresos"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToRecord(row: any): MovementRecord {
@@ -330,6 +321,29 @@ export function useDeleteCategoryRule() {
 }
 
 /** Movimientos (expense, no excluido) con descripción de los últimos `months` meses. */
+/** Neto (ingresos − gastos) de los movimientos registrados desde una fecha dada (ISO, exclusiva). */
+export function useMovementsSince(sinceIso: string | null) {
+  const { user } = useAuth();
+  return useQuery<number>({
+    queryKey: ["movements_net_since", sinceIso, user?.id],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("movements")
+        .select("type, amount")
+        .eq("excluded", false)
+        .gt("date", sinceIso!.slice(0, 10));
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data ?? []).reduce((sum: number, r: any) => {
+        const amount = Number(r.amount) || 0;
+        return sum + (r.type === "income" ? amount : -amount);
+      }, 0);
+    },
+    enabled: !!user && !!sinceIso,
+  });
+}
+
 export function useRecentMovements(months: number) {
   const { user } = useAuth();
   return useQuery<{ date: string; description: string; amount: number; category: string }[]>({

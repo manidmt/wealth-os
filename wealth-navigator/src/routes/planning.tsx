@@ -6,6 +6,8 @@ import { PlanningTabs, type PlanningTab } from "@/components/planning/PlanningTa
 
 const searchSchema = z.object({
   tab: z.enum(["inversion", "gastos"]).optional(),
+  /** Id de un plan de inversión a resaltar al entrar (p. ej. desde Portfolio). */
+  planId: z.string().optional(),
 });
 
 export const Route = createFileRoute("/planning")({
@@ -25,7 +27,7 @@ export const Route = createFileRoute("/planning")({
 
 function PlanningPage() {
   const navigate = useNavigate();
-  const { tab } = Route.useSearch();
+  const { tab, planId } = Route.useSearch();
   const active: PlanningTab = tab ?? "inversion";
 
   return (
@@ -37,6 +39,7 @@ function PlanningPage() {
       />
       <PlanningTabs
         tab={active}
+        focusPlanId={planId}
         onTabChange={(t) => navigate({ to: "/planning", search: { tab: t }, replace: true })}
       />
     </AppShell>

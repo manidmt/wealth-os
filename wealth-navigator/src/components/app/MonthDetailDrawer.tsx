@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Dialog,
@@ -7,10 +8,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AssistantMark } from "@/components/assistant/AssistantMark";
 import { useMoney } from "@/components/app/CurrencyProvider";
 import { DeltaBadge } from "@/components/app/DeltaBadge";
-import { ExpenseTagsBreakdown } from "@/components/app/ExpenseTagsBreakdown";
 import { AddMovementSheet } from "@/components/app/AddMovementSheet";
 import { formatMonth, type SeriesPoint, type ExpenseMonth } from "@/lib/dashboard-data";
 import { useDashboard } from "@/hooks/use-dashboard";
@@ -45,6 +46,7 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
 
   const niceMonth = formatMonth(month);
   const askPrompt = `Analiza el cierre de ${niceMonth}: variación, gasto, ingresos y posibles anomalías.`;
+  const isCurrentMonth = month === data.expenses.currentMonth;
 
   const incomes = (movements ?? []).filter((m) => m.type === "income");
   const expenses = (movements ?? []).filter((m) => m.type === "expense");
@@ -56,99 +58,18 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
           {/* Header */}
           <DialogHeader className="shrink-0 border-b border-border px-6 py-4">
             <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              Cierre mensual
+              {isCurrentMonth ? "Resumen del mes (en curso)" : "Cierre mensual"}
             </div>
             <DialogTitle className="font-display text-2xl tracking-tight">{niceMonth}</DialogTitle>
             <DialogDescription className="sr-only">
-              Detalle del cierre de {niceMonth}
+              Detalle de movimientos y cierre de {niceMonth}
             </DialogDescription>
           </DialogHeader>
 
-          {/* Body: single scroll on mobile, two-column with internal scroll on lg */}
-          <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[1fr_1.5fr] lg:overflow-hidden">
-            {/* Left column — stats + etiquetas */}
-            <div className="border-b border-border p-6 lg:overflow-y-auto lg:border-b-0 lg:border-r">
-              <div className="space-y-6">
-                {/* Snapshot stats */}
-                {point ? (
-                  <div className="space-y-4">
-                    <SectionLabel>Patrimonio</SectionLabel>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Stat
-                        label="Patrimonio neto"
-                        value={money.format1(point.netWorth)}
-                        badge={
-                          prev ? (
-                            <DeltaBadge
-                              value={
-                                prev.netWorth > 0
-                                  ? (point.netWorth - prev.netWorth) / prev.netWorth
-                                  : 0
-                              }
-                              asPercent
-                            />
-                          ) : null
-                        }
-                      />
-                      <Stat label="Activos" value={money.format1(point.assets)} />
-                      <Stat label="Pasivos" value={money.format1(point.liabilities)} />
-                      <Stat label="Ahorro neto" value={money.format1(point.savings)} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 text-[12px] text-muted-foreground">
-                    Sin snapshot de patrimonio para este mes.
-                  </div>
-                )}
-
-                {exp ? (
-                  <div className="space-y-3">
-                    <SectionLabel>Flujo del mes</SectionLabel>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Stat
-                        label="Ingresos"
-                        value={money.format1(exp.incomeTotal)}
-                        hint={prevExp ? `vs ${money.format1(prevExp.incomeTotal)} ant.` : undefined}
-                      />
-                      <Stat
-                        label="Gastos"
-                        value={money.format1(exp.expenseTotal)}
-                        hint={
-                          prevExp ? `vs ${money.format1(prevExp.expenseTotal)} ant.` : undefined
-                        }
-                      />
-                      <Stat
-                        label="Neto del mes"
-                        value={money.format1(exp.net)}
-                        badge={prevExp ? <DeltaBadge value={exp.net - prevExp.net} /> : null}
-                      />
-                      <Stat
-                        label="Tasa de ahorro"
-                        value={
-                          exp.incomeTotal > 0
-                            ? `${((exp.net / exp.incomeTotal) * 100).toFixed(0)}%`
-                            : "—"
-                        }
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {exp ? (
-                  <div className="space-y-2">
-                    <SectionLabel>Etiquetas del mes</SectionLabel>
-                    <ExpenseTagsBreakdown
-                      month={month}
-                      rangeMonths={data.expenses.byMonth}
-                      compact
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Right column — movimientos */}
-            <div className="flex flex-col lg:overflow-hidden">
+          {/* Body: movimientos primero (foco principal), cierre mensual colapsable al final */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {/* Movimientos — primario */}
+            <div className="flex min-h-0 flex-1 flex-col">
               <div className="flex shrink-0 items-center justify-between px-6 py-4">
                 <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                   Movimientos
@@ -166,7 +87,7 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
                 </button>
               </div>
 
-              <div className="px-6 pb-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
                 {movementsLoading ? (
                   <div className="space-y-2">
                     {[1, 2, 3, 4].map((i) => (
@@ -193,6 +114,7 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
                         month={month}
                         onEdit={setEditingMovement}
                         onDelete={(id) => deleteMovement.mutate({ id, month })}
+                        onBeforeAsk={() => onOpenChange(false)}
                       />
                     )}
                     {expenses.length > 0 && (
@@ -202,12 +124,89 @@ export function MonthDetailDrawer({ month, open, onOpenChange }: Props) {
                         month={month}
                         onEdit={setEditingMovement}
                         onDelete={(id) => deleteMovement.mutate({ id, month })}
+                        onBeforeAsk={() => onOpenChange(false)}
                       />
                     )}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Cierre mensual — secundario, colapsado por defecto */}
+            <Collapsible className="shrink-0 border-t border-border">
+              <CollapsibleTrigger className="group/trigger flex w-full items-center justify-between px-6 py-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground transition hover:text-foreground">
+                <span>{isCurrentMonth ? "Resumen del mes (en curso)" : "Cierre mensual"}</span>
+                <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]/trigger:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="max-h-[40vh] overflow-y-auto px-6 pb-5">
+                <div className="space-y-6">
+                  {point ? (
+                    <div className="space-y-4">
+                      <SectionLabel>Patrimonio</SectionLabel>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Stat
+                          label="Patrimonio neto"
+                          value={money.format1(point.netWorth)}
+                          badge={
+                            prev ? (
+                              <DeltaBadge
+                                value={
+                                  prev.netWorth > 0
+                                    ? (point.netWorth - prev.netWorth) / prev.netWorth
+                                    : 0
+                                }
+                                asPercent
+                              />
+                            ) : null
+                          }
+                        />
+                        <Stat label="Activos" value={money.format1(point.assets)} />
+                        <Stat label="Ahorro neto" value={money.format1(point.savings)} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 text-[12px] text-muted-foreground">
+                      Sin snapshot de patrimonio para este mes.
+                    </div>
+                  )}
+
+                  {exp ? (
+                    <div className="space-y-3">
+                      <SectionLabel>Flujo del mes</SectionLabel>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Stat
+                          label="Ingresos"
+                          value={money.format1(exp.incomeTotal)}
+                          hint={
+                            prevExp ? `vs ${money.format1(prevExp.incomeTotal)} ant.` : undefined
+                          }
+                        />
+                        <Stat
+                          label="Gastos"
+                          value={money.format1(exp.expenseTotal)}
+                          hint={
+                            prevExp ? `vs ${money.format1(prevExp.expenseTotal)} ant.` : undefined
+                          }
+                        />
+                        <Stat
+                          label="Neto del mes"
+                          value={money.format1(exp.net)}
+                          badge={prevExp ? <DeltaBadge value={exp.net - prevExp.net} /> : null}
+                        />
+                        <Stat
+                          label="Tasa de ahorro"
+                          value={
+                            exp.incomeTotal > 0
+                              ? `${((exp.net / exp.incomeTotal) * 100).toFixed(0)}%`
+                              : "—"
+                          }
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           {/* Footer */}
@@ -261,13 +260,16 @@ function MovementGroup({
   month: _month,
   onEdit,
   onDelete,
+  onBeforeAsk,
 }: {
   label: string;
   rows: MovementRecord[];
   month: string;
   onEdit: (row: MovementRecord) => void;
   onDelete: (id: string) => void;
+  onBeforeAsk: () => void;
 }) {
+  const navigate = useNavigate();
   return (
     <div>
       <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
@@ -309,6 +311,22 @@ function MovementGroup({
               })}{" "}
               €
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                onBeforeAsk();
+                navigate({
+                  to: "/assistant",
+                  search: {
+                    q: `Cuéntame sobre este movimiento: ${row.date}, ${row.category}, ${row.amount.toLocaleString("es-ES", { maximumFractionDigits: 2 })} € (${row.type === "income" ? "ingreso" : "gasto"})${row.description ? `, "${row.description}"` : ""}.`,
+                  },
+                });
+              }}
+              title="Preguntar al asistente sobre este movimiento"
+              className="shrink-0 rounded p-1 text-muted-foreground/40 transition hover:bg-muted hover:text-foreground"
+            >
+              <AssistantMark className="h-3.5 w-3.5" />
+            </button>
             <button
               type="button"
               onClick={() => onEdit(row)}

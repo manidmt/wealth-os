@@ -1,16 +1,23 @@
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { SectionCard } from "@/components/app/SectionCard";
 import { Input } from "@/components/ui/input";
+import { Sparkline } from "@/components/charts/charts";
 import { BUDGET_GROUPS } from "@/lib/budget-groups";
 import { budgetStatus, totalBudgeted, type BudgetMap } from "@/lib/budget-calc";
 import { projectMonthEnd, budgetAlert } from "@/lib/budget-projection";
+import { seriesByGroup } from "@/lib/budget-history";
 import { euro } from "@/lib/dashboard-data";
 
 const ALERT_BAR: Record<string, string> = {
   ok: "bg-primary",
   warning: "bg-amber-500",
   over: "bg-red-500",
+};
+const ALERT_LINE: Record<string, string> = {
+  ok: "var(--primary)",
+  warning: "var(--warning)",
+  over: "var(--negative)",
 };
 const ALERT_LABEL: Record<string, { text: string; cls: string }> = {
   ok: { text: "Vas bien", cls: "text-emerald-600 dark:text-emerald-400" },
@@ -24,17 +31,21 @@ export function BudgetTable({
   onChange,
   monthIsCurrent = true,
   categorySpend = [],
+  history = [],
 }: {
   budgets: BudgetMap;
   actuals: BudgetMap;
   onChange: (groupKey: string, amount: number) => void;
   monthIsCurrent?: boolean;
   categorySpend?: { category: string; amount: number }[];
+  /** Histórico de meses anteriores (incluye el actual), para la tendencia por grupo. */
+  history?: { month: string; category: string; amount: number }[];
 }) {
   const now = new Date();
   const totalPlanned = totalBudgeted(budgets);
   const totalActual = totalBudgeted(actuals);
   const totalProjected = projectMonthEnd(totalActual, now, monthIsCurrent);
+  const trendByGroup = useMemo(() => seriesByGroup(history), [history]);
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   function toggle(key: string) {
@@ -68,6 +79,7 @@ export function BudgetTable({
               <th className="pb-2 pr-4 text-right font-medium">Presupuesto</th>
               <th className="pb-2 pr-4 text-right font-medium">Gastado</th>
               <th className="pb-2 pr-4 font-medium">Consumido</th>
+              <th className="pb-2 pr-4 font-medium">Tendencia</th>
               <th className="pb-2 pr-4 text-right font-medium">Proyección</th>
               <th className="pb-2 text-right font-medium">Estado</th>
             </tr>
@@ -122,6 +134,15 @@ export function BudgetTable({
                         </span>
                       </div>
                     </td>
+                    <td className="py-2 pr-4">
+                      {trendByGroup[g.key] && trendByGroup[g.key].length > 1 ? (
+                        <div className="h-10 w-16 overflow-hidden">
+                          <Sparkline values={trendByGroup[g.key]} color={ALERT_LINE[alert]} />
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="py-2 pr-4 text-right text-muted-foreground">
                       {monthIsCurrent && planned > 0 ? euro.format(projected) : "—"}
                     </td>
@@ -143,6 +164,7 @@ export function BudgetTable({
                         </td>
                         <td className="py-1.5 pr-4" />
                         <td className="py-1.5 pr-4" />
+                        <td className="py-1.5 pr-4" />
                         <td className="py-1.5" />
                       </tr>
                     ))}
@@ -155,6 +177,7 @@ export function BudgetTable({
               <td className="py-2 pr-4">Total</td>
               <td className="py-2 pr-4 text-right">{euro.format(totalPlanned)}</td>
               <td className="py-2 pr-4 text-right">{euro.format(totalActual)}</td>
+              <td className="py-2 pr-4" />
               <td className="py-2 pr-4" />
               <td className="py-2 pr-4 text-right">
                 {monthIsCurrent ? euro.format(totalProjected) : "—"}

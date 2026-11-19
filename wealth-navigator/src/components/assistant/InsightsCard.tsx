@@ -8,7 +8,8 @@ import { budgetInsight, recurringInsight } from "@/lib/extra-insights";
 import { useBudget, useMonthCategorySpend } from "@/lib/budget-api";
 import { useRecentMovements } from "@/lib/movements-api";
 import { groupActuals } from "@/lib/budget-calc";
-import { detectRecurring } from "@/lib/recurring";
+import { detectRecurring, applyOverrides } from "@/lib/recurring";
+import { useRecurringOverrides } from "@/lib/recurring-overrides";
 
 const TONE_DOT: Record<Insight["tone"], string> = {
   positive: "bg-positive",
@@ -29,10 +30,11 @@ export function InsightsCard() {
   const { data: budget } = useBudget(month);
   const { data: spend = [] } = useMonthCategorySpend(month);
   const { data: recentMovs = [] } = useRecentMovements(6);
+  const { data: recurringOverrides = [] } = useRecurringOverrides();
 
   const extra = [
     budget ? budgetInsight(budget.budgets ?? {}, groupActuals(spend), new Date()) : null,
-    recurringInsight(detectRecurring(recentMovs)),
+    recurringInsight(applyOverrides(detectRecurring(recentMovs), recurringOverrides)),
   ].filter((x): x is NonNullable<typeof x> => x !== null);
 
   const allInsights = [...insights, ...extra].slice(0, 4);
@@ -43,9 +45,7 @@ export function InsightsCard() {
         <div className="flex items-center gap-2.5">
           <AssistantMark className="h-4 w-4 text-primary" />
           <div>
-            <div className="text-[13px] font-semibold tracking-tight">
-              Studio Insights
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">Studio Insights</div>
             <div className="text-[11px] text-muted-foreground">
               Observaciones generadas a partir de tus datos
             </div>
@@ -57,23 +57,16 @@ export function InsightsCard() {
           className="hidden rounded-md border border-border px-2.5 py-1.5 text-[11.5px] font-medium text-muted-foreground hover:border-border-strong hover:text-foreground sm:inline-flex"
         >
           Preguntar al asistente
-          <kbd className="ml-2 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-            ⌘K
-          </kbd>
+          <kbd className="ml-2 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
         </button>
       </header>
 
       <ul className="divide-y divide-border">
         {allInsights.map((it) => (
-          <li
-            key={it.id}
-            className="group flex items-start gap-3 px-5 py-3.5 hover:bg-muted/30"
-          >
+          <li key={it.id} className="group flex items-start gap-3 px-5 py-3.5 hover:bg-muted/30">
             <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TONE_DOT[it.tone]}`} />
             <div className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-medium text-foreground">
-                {it.title}
-              </div>
+              <div className="text-[13.5px] font-medium text-foreground">{it.title}</div>
               <div className="text-[12px] text-muted-foreground">{it.body}</div>
             </div>
             <button
@@ -81,7 +74,7 @@ export function InsightsCard() {
               onClick={() => navigate({ to: "/assistant", search: { q: it.prompt } })}
               className="shrink-0 self-center inline-flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[11.5px] text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:border-border hover:text-foreground"
             >
-              Profundizar <ArrowUpRight className="h-3 w-3" />
+              Preguntar <ArrowUpRight className="h-3 w-3" />
             </button>
           </li>
         ))}

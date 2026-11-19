@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BrandMark } from "@/components/app/BrandMark";
+import { LogoMark } from "@/components/app/LogoMark";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -144,7 +144,7 @@ function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-md bg-primary text-primary-foreground">
-            <BrandMark className="h-5 w-5" />
+            <LogoMark className="h-5 w-5" />
           </div>
           <div className="text-center">
             <h1 className="font-display text-xl font-semibold tracking-tight text-foreground">

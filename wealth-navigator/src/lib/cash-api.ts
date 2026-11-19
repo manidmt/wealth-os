@@ -11,7 +11,7 @@ export function useCashAccounts() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("cash_accounts")
-        .select("id, name, balance, updated_at")
+        .select("id, name, balance, updated_at, bank_account_uid, balance_synced_at")
         .order("created_at", { ascending: true });
       if (error) throw error;
       // PostgREST devuelve numeric como string → number

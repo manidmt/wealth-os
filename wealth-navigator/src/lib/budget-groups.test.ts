@@ -5,7 +5,7 @@ import { EXPENSE_CATEGORIES } from "./movements-api";
 describe("budget-groups", () => {
   it("mapea categorías a su grupo esperado", () => {
     expect(groupForCategory("Comida")).toBe("comida");
-    expect(groupForCategory("Café")).toBe("comida");
+    expect(groupForCategory("Café")).toBe("ocio");
     expect(groupForCategory("Comer fuera")).toBe("ocio");
     expect(groupForCategory("Viaje")).toBe("ocio");
     expect(groupForCategory("Coche")).toBe("transporte");
@@ -13,7 +13,6 @@ describe("budget-groups", () => {
     expect(groupForCategory("Gimnasio")).toBe("salud");
     expect(groupForCategory("Tecnología")).toBe("compras");
     expect(groupForCategory("Educación")).toBe("formacion");
-    expect(groupForCategory("Formación")).toBe("formacion");
     expect(groupForCategory("Otro")).toBe("otros");
   });
 
@@ -22,7 +21,7 @@ describe("budget-groups", () => {
     expect(groupForCategory("")).toBe("otros");
   });
 
-  it("cubre las 23 categorías sin solapes", () => {
+  it("cubre todas las categorías de gasto sin solapes", () => {
     const mapped = BUDGET_GROUPS.flatMap((g) => g.categories);
     expect(new Set(mapped).size).toBe(mapped.length);
     for (const cat of EXPENSE_CATEGORIES) {

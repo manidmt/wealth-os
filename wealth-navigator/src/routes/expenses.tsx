@@ -4,17 +4,15 @@ import { AppShell } from "@/components/app/AppShell";
 import { PageHeader, SectionCard, SectionLabel } from "@/components/app/SectionCard";
 import { KpiCard } from "@/components/app/KpiCard";
 import { DeltaBadge } from "@/components/app/DeltaBadge";
-import { BarList, MonthlyExpensesBars, Sparkline } from "@/components/charts/charts";
+import { BarList, MonthlyExpensesBars } from "@/components/charts/charts";
 import { RangeProvider, RangeToolbar, useRange } from "@/components/app/RangeToolbar";
 import { MonthDetailDrawer } from "@/components/app/MonthDetailDrawer";
 import { AddMovementSheet } from "@/components/app/AddMovementSheet";
 import { CsvImportSheet } from "@/components/app/CsvImportSheet";
-import { ExpenseTagsBreakdown } from "@/components/app/ExpenseTagsBreakdown";
 import { RecurringExpensesCard } from "@/components/app/RecurringExpensesCard";
 import { BudgetSummaryCard } from "@/components/planning/BudgetSummaryCard";
 import { useMoney } from "@/components/app/CurrencyProvider";
-import { EXPENSE_TAGS, tagSeries } from "@/lib/expense-tags";
-import { formatMonth, type ExpenseMonth } from "@/lib/dashboard-data";
+import { formatMonth } from "@/lib/dashboard-data";
 import { useDashboard } from "@/hooks/use-dashboard";
 import {
   useMonthMovements,
@@ -123,6 +121,7 @@ function ExpensesBody() {
           badge={<DeltaBadge value={expenseDelta} asPercent invert />}
           series={expenseTrend}
           sparkColor="var(--chart-4)"
+          onClick={() => setSelectedMonth(data.expenses.currentMonth)}
         />
         <KpiCard
           label="Ingresos del mes"
@@ -154,10 +153,6 @@ function ExpensesBody() {
         <BudgetSummaryCard />
       </section>
 
-      <section>
-        <RecurringExpensesCard />
-      </section>
-
       <section className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
         <SectionCard
           title="Histórico mensual"
@@ -176,22 +171,8 @@ function ExpensesBody() {
         </SectionCard>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
-        <SectionCard
-          title="Etiquetas del mes"
-          description="Naturaleza del gasto: una transacción puede llevar varias etiquetas."
-          askPrompt="Analiza la composición del gasto del mes por etiquetas (Esencial, Recurrente, Ocio…) y sugiere qué etiqueta debería vigilar."
-        >
-          <ExpenseTagsBreakdown month={current.month} rangeMonths={months} />
-        </SectionCard>
-
-        <SectionCard
-          title="Etiquetas a lo largo del rango"
-          description={`Evolución de cada etiqueta sobre ${months.length} cierres.`}
-          askPrompt="¿Qué etiquetas de gasto están creciendo más rápido y cuáles bajan en el rango activo?"
-        >
-          <TagTrendGrid months={months} />
-        </SectionCard>
+      <section>
+        <RecurringExpensesCard />
       </section>
 
       <section>
@@ -394,50 +375,5 @@ function DuplicateReviewSection({ month }: { month: string }) {
         </div>
       </SectionCard>
     </section>
-  );
-}
-
-function TagTrendGrid({ months }: { months: ExpenseMonth[] }) {
-  const money = useMoney();
-  return (
-    <ul className="grid gap-3 sm:grid-cols-2">
-      {EXPENSE_TAGS.map((t) => {
-        const series = tagSeries(months, t.key);
-        const last = series[series.length - 1] ?? 0;
-        const first = series[0] ?? 0;
-        const delta = first > 0 ? (last - first) / first : 0;
-        return (
-          <li key={t.key} className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-[12.5px] font-medium text-foreground">
-                <span
-                  aria-hidden
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: t.color }}
-                />
-                {t.label}
-              </span>
-              <span
-                className={
-                  delta > 0
-                    ? "text-[11.5px] font-medium tabular-nums text-negative"
-                    : delta < 0
-                      ? "text-[11.5px] font-medium tabular-nums text-positive"
-                      : "text-[11.5px] font-medium tabular-nums text-muted-foreground"
-                }
-              >
-                {delta === 0 ? "—" : `${delta > 0 ? "+" : ""}${(delta * 100).toFixed(1)}%`}
-              </span>
-            </div>
-            <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
-              {money.format1(last)} <span className="text-muted-foreground/70">último mes</span>
-            </div>
-            <div className="mt-2 -mx-1">
-              <Sparkline values={series} color={t.color} />
-            </div>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

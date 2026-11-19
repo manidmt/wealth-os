@@ -30,11 +30,7 @@ function ChartMount({ children, height }: { children: ReactNode; height: number 
   useEffect(() => setMounted(true), []);
   if (!mounted) {
     return (
-      <div
-        className="w-full animate-pulse rounded-md bg-muted/40"
-        style={{ height }}
-        aria-hidden
-      />
+      <div className="w-full animate-pulse rounded-md bg-muted/40" style={{ height }} aria-hidden />
     );
   }
   return <div style={{ height, width: "100%" }}>{children}</div>;
@@ -145,9 +141,12 @@ export function NetWorthAreaChart({
 export function DonutChart({
   data,
   total,
+  onSelect,
 }: {
   data: { label: string; value: number }[];
   total?: number;
+  /** When set, segments become clickable and call this with the segment's label. */
+  onSelect?: (label: string) => void;
 }) {
   const money = useMoney();
   const sum = total ?? data.reduce((acc, d) => acc + d.value, 0);
@@ -168,8 +167,13 @@ export function DonutChart({
               strokeWidth={2}
               isAnimationActive={false}
             >
-              {converted.map((_, i) => (
-                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              {converted.map((d, i) => (
+                <Cell
+                  key={i}
+                  fill={CHART_COLORS[i % CHART_COLORS.length]}
+                  onClick={onSelect ? () => onSelect(d.label) : undefined}
+                  style={onSelect ? { cursor: "pointer" } : undefined}
+                />
               ))}
             </Pie>
             <Tooltip
@@ -193,12 +197,8 @@ export function DonutChart({
         </ResponsiveContainer>
       </ChartMount>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-12">
-        <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-          Total
-        </div>
-        <div className="font-display text-xl font-semibold tabular-nums">
-          {money.format1(sum)}
-        </div>
+        <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Total</div>
+        <div className="font-display text-xl font-semibold tabular-nums">{money.format1(sum)}</div>
       </div>
     </div>
   );
@@ -236,7 +236,13 @@ export function MonthlyExpensesBars({
         >
           <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} {...axisStyle} />
-          <YAxis tickFormatter={shortNumber} tickLine={false} axisLine={false} width={48} {...axisStyle} />
+          <YAxis
+            tickFormatter={shortNumber}
+            tickLine={false}
+            axisLine={false}
+            width={48}
+            {...axisStyle}
+          />
           <Tooltip
             contentStyle={tooltipStyle}
             formatter={(v: unknown) =>
@@ -248,9 +254,28 @@ export function MonthlyExpensesBars({
             }
           />
           <Legend wrapperStyle={{ fontSize: 11.5, paddingTop: 8 }} iconType="circle" iconSize={8} />
-          <Bar dataKey="Ingresos" fill="var(--chart-2)" radius={[4, 4, 0, 0]} maxBarSize={26} isAnimationActive={false} />
-          <Bar dataKey="Gastos" fill="var(--chart-4)" radius={[4, 4, 0, 0]} maxBarSize={26} isAnimationActive={false} />
-          <Line type="monotone" dataKey="Neto" stroke="var(--chart-1)" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Bar
+            dataKey="Ingresos"
+            fill="var(--chart-2)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={26}
+            isAnimationActive={false}
+          />
+          <Bar
+            dataKey="Gastos"
+            fill="var(--chart-4)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={26}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="Neto"
+            stroke="var(--chart-1)"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </ChartMount>
@@ -262,9 +287,12 @@ export function MonthlyExpensesBars({
 export function BarList({
   items,
   total,
+  onSelect,
 }: {
   items: { label: string; value: number }[];
   total?: number;
+  /** When set, each row becomes clickable and calls this with the row's label. */
+  onSelect?: (label: string) => void;
 }) {
   const money = useMoney();
   const sum = total ?? items.reduce((a, b) => a + b.value, 0);
@@ -272,8 +300,8 @@ export function BarList({
     <ul className="space-y-3">
       {items.map((it, i) => {
         const pct = sum > 0 ? (it.value / sum) * 100 : 0;
-        return (
-          <li key={it.label}>
+        const row = (
+          <>
             <div className="mb-1 flex items-baseline justify-between gap-2 text-[12.5px]">
               <span className="truncate text-foreground">{it.label}</span>
               <span className="shrink-0 text-muted-foreground tabular-nums">
@@ -290,6 +318,21 @@ export function BarList({
                 }}
               />
             </div>
+          </>
+        );
+        return (
+          <li key={it.label}>
+            {onSelect ? (
+              <button
+                type="button"
+                onClick={() => onSelect(it.label)}
+                className="w-full text-left transition hover:opacity-80"
+              >
+                {row}
+              </button>
+            ) : (
+              row
+            )}
           </li>
         );
       })}

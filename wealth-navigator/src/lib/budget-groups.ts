@@ -1,17 +1,21 @@
 export type BudgetGroup = { key: string; label: string; categories: string[] };
 
 export const BUDGET_GROUPS: BudgetGroup[] = [
-  { key: "comida", label: "Comida", categories: ["Comida", "Café"] },
-  { key: "ocio", label: "Ocio", categories: ["Ocio", "Viaje", "Comer fuera"] },
+  { key: "comida", label: "Comida", categories: ["Comida"] },
+  { key: "ocio", label: "Ocio", categories: ["Ocio", "Viaje", "Comer fuera", "Café"] },
   { key: "transporte", label: "Transporte", categories: ["Transporte", "Coche"] },
-  { key: "hogar", label: "Hogar", categories: ["Hogar", "Suscripciones", "Impuestos", "Gestiones"] },
+  {
+    key: "hogar",
+    label: "Hogar",
+    categories: ["Hogar", "Suscripciones", "Impuestos", "Gestiones"],
+  },
   {
     key: "salud",
     label: "Salud y bienestar",
     categories: ["Salud", "Gimnasio", "Deporte", "Cuidado personal", "Higiene", "Suplementos"],
   },
   { key: "compras", label: "Compras", categories: ["Ropa", "Tecnología", "Regalo"] },
-  { key: "formacion", label: "Formación", categories: ["Educación", "Formación"] },
+  { key: "formacion", label: "Formación", categories: ["Educación"] },
   { key: "otros", label: "Otros", categories: ["Otro"] },
 ];
 

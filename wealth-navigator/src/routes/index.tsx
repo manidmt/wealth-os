@@ -4,14 +4,11 @@ import { useState } from "react";
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader, SectionCard, SectionLabel } from "@/components/app/SectionCard";
 import { KpiCard } from "@/components/app/KpiCard";
+import { BankHealthBanner } from "@/components/app/BankHealthBanner";
 import { DeltaBadge } from "@/components/app/DeltaBadge";
 import { RangeProvider, RangeToolbar, useRange } from "@/components/app/RangeToolbar";
 import { MonthDetailDrawer } from "@/components/app/MonthDetailDrawer";
-import {
-  BarList,
-  DonutChart,
-  NetWorthAreaChart,
-} from "@/components/charts/charts";
+import { BarList, DonutChart, NetWorthAreaChart } from "@/components/charts/charts";
 import { InsightsCard } from "@/components/assistant/InsightsCard";
 import { BudgetSummaryCard } from "@/components/planning/BudgetSummaryCard";
 import { useMoney } from "@/components/app/CurrencyProvider";
@@ -50,9 +47,15 @@ function HomePage() {
         }
       />
 
+      <div className="px-4 pb-4 md:px-8 empty:hidden">
+        <BankHealthBanner />
+      </div>
+
       <RangeProvider defaultRange="12M">
         <div className="px-4 md:px-8">
-          <RangeToolbar label={`${data.latestMonth === data.currentCalendarMonth ? "En curso" : "Cierre"} · ${formatMonth(data.latestMonth)}`} />
+          <RangeToolbar
+            label={`${data.latestMonth === data.currentCalendarMonth ? "En curso" : "Cierre"} · ${formatMonth(data.latestMonth)}`}
+          />
         </div>
         <HomeBody />
       </RangeProvider>
@@ -79,8 +82,7 @@ function HomeBody() {
 
   const baseExp = baseline(data.expenses.byMonth);
   const lastExp = expenseMonths[expenseMonths.length - 1];
-  const expDelta =
-    lastExp && baseExp ? lastExp.expenseTotal - baseExp.expenseTotal : 0;
+  const expDelta = lastExp && baseExp ? lastExp.expenseTotal - baseExp.expenseTotal : 0;
 
   const compareLabel =
     compare === "prev"
@@ -92,9 +94,7 @@ function HomeBody() {
   const totalSavings = expenseMonths.reduce((acc, m) => acc + m.net, 0);
 
   const topCats = data.expenses.currentMonthCategories.slice(0, 5);
-  const topHoldings = [...data.portfolio.holdings]
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
+  const topHoldings = [...data.portfolio.holdings].sort((a, b) => b.value - a.value).slice(0, 5);
   const allocationTotal = data.allocation.reduce((a, b) => a + b.value, 0);
 
   // Sparkline trends from the active range slice
@@ -114,7 +114,7 @@ function HomeBody() {
             accent="primary"
             label="Patrimonio neto"
             value={money.format(last.netWorth)}
-            hint={`Activos ${money.format(last.assets)} · Pasivos ${money.format(last.liabilities)}`}
+            hint={`Activos ${money.format(last.assets)}`}
             badge={<DeltaBadge value={changePct} asPercent />}
             series={netWorthTrend}
           />
@@ -140,6 +140,7 @@ function HomeBody() {
             badge={baseExp ? <DeltaBadge value={expDelta} invert /> : null}
             series={expenseMonths.map((m) => m.expenseTotal)}
             sparkColor="var(--chart-4)"
+            onClick={() => setSelectedMonth(data.expenses.currentMonth)}
           />
         </div>
       </section>
@@ -182,12 +183,13 @@ function HomeBody() {
           description={`Total ${money.format1(data.expenses.currentMonthTotal)} · Ingresos ${money.format1(data.expenses.currentMonthIncome)}`}
           askPrompt={`Explícame el gasto de ${formatMonth(data.expenses.currentMonth)}: top categorías, anomalías y comparativa con el mes anterior.`}
           actions={
-            <Link
-              to="/expenses"
+            <button
+              type="button"
+              onClick={() => setSelectedMonth(data.expenses.currentMonth)}
               className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
             >
               Detalle →
-            </Link>
+            </button>
           }
         >
           <BarList items={topCats} />
@@ -213,16 +215,10 @@ function HomeBody() {
                 className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-medium text-foreground">
-                    {h.label}
-                  </div>
-                  <div className="text-[11.5px] text-muted-foreground">
-                    {h.platform}
-                  </div>
+                  <div className="truncate text-[13px] font-medium text-foreground">{h.label}</div>
+                  <div className="text-[11.5px] text-muted-foreground">{h.platform}</div>
                 </div>
-                <div className="text-[13px] font-medium tabular-nums">
-                  {money.format1(h.value)}
-                </div>
+                <div className="text-[13px] font-medium tabular-nums">{money.format1(h.value)}</div>
               </li>
             ))}
           </ul>

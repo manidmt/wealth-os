@@ -26,7 +26,7 @@ describe("budget-calc", () => {
       { category: "Comer fuera", amount: 50 },
       { category: "NoExiste", amount: 5 },
     ];
-    expect(groupActuals(movs)).toEqual({ comida: 130, ocio: 50, otros: 5 });
+    expect(groupActuals(movs)).toEqual({ comida: 100, ocio: 80, otros: 5 });
   });
   it("budgetStatus calcula pct, restante y exceso", () => {
     expect(budgetStatus(200, 150)).toEqual({ pct: 0.75, remaining: 50, over: false });

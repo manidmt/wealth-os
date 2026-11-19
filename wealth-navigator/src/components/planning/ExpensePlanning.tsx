@@ -21,7 +21,8 @@ import {
 import { medianByGroup } from "@/lib/budget-history";
 import { BUDGET_GROUPS } from "@/lib/budget-groups";
 import { useRecentMovements } from "@/lib/movements-api";
-import { detectRecurring, recurringFloorByGroup } from "@/lib/recurring";
+import { detectRecurring, applyOverrides, recurringFloorByGroup } from "@/lib/recurring";
+import { useRecurringOverrides } from "@/lib/recurring-overrides";
 import { euro, formatMonth } from "@/lib/dashboard-data";
 import { BudgetTable } from "./BudgetTable";
 import { AgentSuggestionPanel } from "./AgentSuggestionPanel";
@@ -66,7 +67,10 @@ export function ExpensePlanning() {
   }));
   const { data: history = [] } = useHistoricalCategorySpend(6);
   const { data: recentMovs = [] } = useRecentMovements(6);
-  const recurringFloor = recurringFloorByGroup(detectRecurring(recentMovs));
+  const { data: recurringOverrides = [] } = useRecurringOverrides();
+  const recurringFloor = recurringFloorByGroup(
+    applyOverrides(detectRecurring(recentMovs), recurringOverrides),
+  );
 
   // Se siembra el estado local una sola vez por mes. No volvemos a hacerlo en cada
   // refetch (cada guardado invalida la query): si lo hiciéramos, una respuesta lenta
@@ -285,6 +289,7 @@ export function ExpensePlanning() {
         onChange={updateBudget}
         monthIsCurrent={month === currentMonth()}
         categorySpend={spend}
+        history={history}
       />
 
       <AgentSuggestionPanel
